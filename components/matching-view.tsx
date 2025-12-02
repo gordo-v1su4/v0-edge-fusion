@@ -202,45 +202,75 @@ export function MatchingView() {
                 exit={{ opacity: 0, y: -20 }}
                 className="bg-card rounded-xl border border-border p-6"
               >
-                <div className="text-center mb-4">
+                <div className="text-center mb-6">
                   <h3 className="text-lg font-semibold">Do these clips match well?</h3>
                   <p className="text-sm text-muted-foreground">
                     Match {currentMatchIndex + 1} of {matches.length}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-8 mb-6">
-                  <div className="text-center">
-                    <div className="w-48 h-28 rounded-lg overflow-hidden mb-2">
-                      <img
-                        src={matches[currentMatchIndex].clipA.thumbnail || "/placeholder.svg"}
-                        alt={matches[currentMatchIndex].clipA.name}
-                        className="w-full h-full object-cover"
-                      />
+                <div className="grid grid-cols-2 gap-6 mb-6 max-w-3xl mx-auto">
+                  <div className="space-y-3">
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                      <div className="aspect-video">
+                        <img
+                          src={matches[currentMatchIndex].clipA.thumbnail || "/placeholder.svg"}
+                          alt={matches[currentMatchIndex].clipA.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate max-w-48">
-                      {matches[currentMatchIndex].clipA.name}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium truncate">{matches[currentMatchIndex].clipA.name}</p>
+                      <div className="flex gap-1.5">
+                        {matches[currentMatchIndex].clipA.metadata?.sportType && (
+                          <Badge variant="secondary" className="text-xs">
+                            {matches[currentMatchIndex].clipA.metadata.sportType}
+                          </Badge>
+                        )}
+                        {matches[currentMatchIndex].clipA.metadata?.environment && (
+                          <Badge variant="outline" className="text-xs">
+                            {matches[currentMatchIndex].clipA.metadata.environment}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col items-center">
-                    <Sparkles className="w-6 h-6 text-primary mb-2" />
+                  <div className="space-y-3">
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                      <div className="aspect-video">
+                        <img
+                          src={matches[currentMatchIndex].clipB.thumbnail || "/placeholder.svg"}
+                          alt={matches[currentMatchIndex].clipB.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium truncate">{matches[currentMatchIndex].clipB.name}</p>
+                      <div className="flex gap-1.5">
+                        {matches[currentMatchIndex].clipB.metadata?.sportType && (
+                          <Badge variant="secondary" className="text-xs">
+                            {matches[currentMatchIndex].clipB.metadata.sportType}
+                          </Badge>
+                        )}
+                        {matches[currentMatchIndex].clipB.metadata?.environment && (
+                          <Badge variant="outline" className="text-xs">
+                            {matches[currentMatchIndex].clipB.metadata.environment}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center mb-6">
+                  <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
                     <Badge className={getQualityColor(matches[currentMatchIndex].quality)}>
                       {Math.round(matches[currentMatchIndex].score)}% match
                     </Badge>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="w-48 h-28 rounded-lg overflow-hidden mb-2">
-                      <img
-                        src={matches[currentMatchIndex].clipB.thumbnail || "/placeholder.svg"}
-                        alt={matches[currentMatchIndex].clipB.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate max-w-48">
-                      {matches[currentMatchIndex].clipB.name}
-                    </p>
                   </div>
                 </div>
 
@@ -409,45 +439,88 @@ export function MatchingView() {
                 exit={{ opacity: 0, y: 20 }}
                 className="bg-card rounded-xl border border-border p-4"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <h4 className="text-sm font-medium">Selected for Transition</h4>
                   <Button variant="ghost" size="sm" onClick={() => setSelectedClips(null, null)}>
                     <X className="w-4 h-4 mr-1" />
                     Clear
                   </Button>
                 </div>
-                <div className="flex items-center gap-4 mt-3">
+
+                <div className="grid grid-cols-2 gap-4">
                   <div
                     className={cn(
-                      "flex-1 h-20 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden",
-                      selectedClipA ? "border-primary" : "border-border",
+                      "relative rounded-lg border-2 overflow-hidden bg-muted/20",
+                      selectedClipA ? "border-primary" : "border-dashed border-border",
                     )}
                   >
                     {selectedClipA ? (
-                      <img
-                        src={selectedClipA.thumbnail || "/placeholder.svg"}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                      <div>
+                        <div className="aspect-video bg-black">
+                          <img
+                            src={selectedClipA.thumbnail || "/placeholder.svg"}
+                            alt={selectedClipA.name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="p-2 bg-card/80 backdrop-blur-sm">
+                          <p className="text-xs font-medium truncate">{selectedClipA.name}</p>
+                          <div className="flex gap-1 mt-1">
+                            {selectedClipA.metadata?.sportType && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                {selectedClipA.metadata.sportType}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Select Clip A</span>
+                      <div className="aspect-video flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                            <span className="text-lg font-semibold text-muted-foreground">A</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">Select first clip</span>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" />
+
                   <div
                     className={cn(
-                      "flex-1 h-20 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden",
-                      selectedClipB ? "border-primary" : "border-border",
+                      "relative rounded-lg border-2 overflow-hidden bg-muted/20",
+                      selectedClipB ? "border-primary" : "border-dashed border-border",
                     )}
                   >
                     {selectedClipB ? (
-                      <img
-                        src={selectedClipB.thumbnail || "/placeholder.svg"}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                      <div>
+                        <div className="aspect-video bg-black">
+                          <img
+                            src={selectedClipB.thumbnail || "/placeholder.svg"}
+                            alt={selectedClipB.name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="p-2 bg-card/80 backdrop-blur-sm">
+                          <p className="text-xs font-medium truncate">{selectedClipB.name}</p>
+                          <div className="flex gap-1 mt-1">
+                            {selectedClipB.metadata?.sportType && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                {selectedClipB.metadata.sportType}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Select Clip B</span>
+                      <div className="aspect-video flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                            <span className="text-lg font-semibold text-muted-foreground">B</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">Select second clip</span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -1,9 +1,9 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useAppStore } from "@/lib/store"
+import type { ProductMedia } from "@/lib/store"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Wand2,
@@ -23,6 +23,10 @@ import {
   Layers,
   ArrowRight,
   Film,
+  Upload,
+  X,
+  ImageIcon as ImageIconLucide,
+  Video,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -69,8 +73,19 @@ const multiPromptSteps: GenerationStep[] = [
 ]
 
 export function TransitionView() {
-  const { selectedClipA, selectedClipB, setCurrentView, generatedTransition, setGeneratedTransition, addToTimeline } =
-    useAppStore()
+  const {
+    selectedClipA,
+    selectedClipB,
+    setCurrentView,
+    generatedTransition,
+    setGeneratedTransition,
+    addToTimeline,
+    productMedia,
+    selectedProduct,
+    addProductMedia,
+    removeProductMedia,
+    setSelectedProduct,
+  } = useAppStore()
 
   const [transitionDuration, setTransitionDuration] = useState(8)
   const [productPlacement, setProductPlacement] = useState(false)
@@ -86,6 +101,33 @@ export function TransitionView() {
   const [extractedIngredients, setExtractedIngredients] = useState<ExtractedIngredient[]>([])
   const [ingredientsExtracted, setIngredientsExtracted] = useState(false)
   const [productVideoGenerated, setProductVideoGenerated] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach((file) => {
+      const url = URL.createObjectURL(file)
+      const isVideo = file.type.startsWith("video/")
+
+      const newMedia: ProductMedia = {
+        id: `product-${Date.now()}-${Math.random()}`,
+        name: file.name,
+        url,
+        type: isVideo ? "video" : "image",
+        thumbnail: isVideo ? undefined : url,
+      }
+
+      addProductMedia(newMedia)
+    })
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
 
   const handleMultiPromptToggle = (enabled: boolean) => {
     setMultiPromptMode(enabled)
@@ -702,6 +744,126 @@ export function TransitionView() {
 
           <div className="h-px bg-border" />
 
+          {/* Product Media Upload Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-warning" />
+                Product Media
+              </Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-7 px-2 text-xs"
+              >
+                <Upload className="w-3 h-3 mr-1" />
+                Add
+              </Button>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+
+            {/* Product Media Pool */}
+            <div className="bg-muted/30 rounded-lg border border-border p-3 min-h-[120px] max-h-[200px] overflow-y-auto">
+              {productMedia.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full py-6 text-center">
+                  <Package className="w-8 h-8 text-muted-foreground/50 mb-2" />
+                  <p className="text-xs text-muted-foreground">No products uploaded</p>
+                  <p className="text-xs text-muted-foreground/70">Upload images or videos of products</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {productMedia.map((product) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn(
+                        "group relative rounded-lg border-2 overflow-hidden cursor-pointer transition-all aspect-square",
+                        selectedProduct?.id === product.id
+                          ? "border-warning bg-warning/10 shadow-sm"
+                          : "border-border hover:border-warning/50",
+                      )}
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      <div className="absolute inset-0 bg-black">
+                        <img
+                          src={product.thumbnail || product.url}
+                          alt={product.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      {/* Type indicator */}
+                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+                        {product.type === "video" ? (
+                          <Video className="w-3 h-3 text-white" />
+                        ) : (
+                          <ImageIconLucide className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+
+                      {/* Selected indicator */}
+                      {selectedProduct?.id === product.id && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-warning flex items-center justify-center"
+                        >
+                          <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
+                        </motion.div>
+                      )}
+
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeProductMedia(product.id)
+                        }}
+                        className="absolute bottom-1 right-1 p-1 rounded-full bg-destructive/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+
+                      {/* Name overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-[10px] text-white truncate">{product.name}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedProduct && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-2 rounded-lg bg-warning/10 border border-warning/30"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-warning" />
+                  <p className="text-xs text-foreground flex-1 truncate">
+                    Selected: <span className="font-medium">{selectedProduct.name}</span>
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedProduct(null)} className="h-5 w-5 p-0">
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          <div className="h-px bg-border" />
+
           {/* Keyframe Preview */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2">
@@ -709,11 +871,11 @@ export function TransitionView() {
               Keyframe Preview
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              <div className="aspect-video rounded-lg overflow-hidden border border-border">
+              <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black">
                 <img
                   src={selectedClipA.thumbnail || "/placeholder.svg"}
                   alt="Start frame"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
               {multiKeyframe && (
@@ -726,11 +888,11 @@ export function TransitionView() {
                   <span className="text-xs text-muted-foreground">+2</span>
                 </div>
               )}
-              <div className="aspect-video rounded-lg overflow-hidden border border-border">
+              <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black">
                 <img
                   src={selectedClipB.thumbnail || "/placeholder.svg"}
                   alt="End frame"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>

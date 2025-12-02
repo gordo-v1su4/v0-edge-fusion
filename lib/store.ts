@@ -34,6 +34,14 @@ export interface AnalysisStep {
   startTime?: number
 }
 
+export interface ProductMedia {
+  id: string
+  name: string
+  url: string
+  type: "image" | "video"
+  thumbnail?: string
+}
+
 interface AppState {
   currentView: "upload" | "analysis" | "matching" | "transition" | "timeline"
   setCurrentView: (view: AppState["currentView"]) => void
@@ -79,6 +87,12 @@ interface AppState {
   addToTimeline: (clip: VideoClip, transition?: string) => void
   removeFromTimeline: (index: number) => void
   reorderTimeline: (from: number, to: number) => void
+
+  productMedia: ProductMedia[]
+  selectedProduct: ProductMedia | null
+  addProductMedia: (media: ProductMedia) => void
+  removeProductMedia: (id: string) => void
+  setSelectedProduct: (product: ProductMedia | null) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -156,4 +170,17 @@ export const useAppStore = create<AppState>((set) => ({
       items.splice(to, 0, removed)
       return { timelineClips: items }
     }),
+
+  productMedia: [],
+  selectedProduct: null,
+  addProductMedia: (media) =>
+    set((state) => ({
+      productMedia: [...state.productMedia, media],
+    })),
+  removeProductMedia: (id) =>
+    set((state) => ({
+      productMedia: state.productMedia.filter((m) => m.id !== id),
+      selectedProduct: state.selectedProduct?.id === id ? null : state.selectedProduct,
+    })),
+  setSelectedProduct: (product) => set({ selectedProduct: product }),
 }))

@@ -16,7 +16,7 @@ export function Header() {
   const { currentView } = useAppStore()
 
   return (
-    <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between pl-8 pr-6 h-[64.5px]">
       <div>
         <h1 className="text-lg font-semibold text-foreground">{viewTitles[currentView]}</h1>
       </div>
