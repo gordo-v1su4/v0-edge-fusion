@@ -1,13 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
-// <CHANGE> Updated metadata for edge-fusion app
+// Updated metadata for edge-fusion app
 export const metadata: Metadata = {
   title: "edge-fusion | Video Analysis & Transitions",
   description: "AI-powered video clip matching and seamless transition generation",
@@ -31,17 +30,22 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#000000",
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
-      </body>
+    <html lang="en" className="dark bg-background">
+      <body className={`font-sans antialiased`}>{children}</body>
     </html>
   )
 }

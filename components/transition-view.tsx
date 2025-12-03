@@ -7,8 +7,6 @@ import type { ProductMedia } from "@/lib/store"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Wand2,
-  Play,
-  Pause,
   RotateCcw,
   ChevronRight,
   ImageIcon,
@@ -101,6 +99,8 @@ export function TransitionView() {
   const [extractedIngredients, setExtractedIngredients] = useState<ExtractedIngredient[]>([])
   const [ingredientsExtracted, setIngredientsExtracted] = useState(false)
   const [productVideoGenerated, setProductVideoGenerated] = useState(false)
+
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -256,8 +256,15 @@ export function TransitionView() {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Main Preview Area */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex-1 p-4 md:p-6 overflow-auto pb-20 lg:pb-6">
+        <div className="max-w-5xl mx-auto space-y-4 md:space-y-6">
+          <div className="lg:hidden flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setShowSettingsSheet(true)} className="gap-2">
+              <Layers className="w-4 h-4" />
+              Settings
+            </Button>
+          </div>
+
           {multiPromptMode && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -273,26 +280,26 @@ export function TransitionView() {
               <div className="flex items-center justify-between gap-2 overflow-x-auto pb-4">
                 {/* Clip A Last Frame */}
                 <div className="flex-shrink-0 text-center">
-                  <div className="w-20 h-14 rounded-lg overflow-hidden border-2 border-info mb-1">
+                  <div className="w-24 h-18 rounded-lg overflow-hidden border-2 border-info mb-1">
                     <img
                       src={selectedClipA.thumbnail || "/placeholder.svg"}
                       alt="Clip A"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Clip A</p>
-                  <p className="text-[10px] font-medium text-info">Last Frame</p>
+                  <p className="text-[11px] text-muted-foreground">Clip A</p>
+                  <p className="text-[11px] font-medium text-info">Last Frame</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
                 {/* Transition A -> Product */}
                 <div className="flex-shrink-0 text-center">
-                  <div className="w-20 h-14 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-primary/50" />
+                  <div className="w-24 h-18 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary/50" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Transition</p>
-                  <p className="text-[10px] font-medium text-primary">Interpolation</p>
+                  <p className="text-[11px] text-muted-foreground">Transition</p>
+                  <p className="text-[11px] font-medium text-primary">Interpolation</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -301,20 +308,20 @@ export function TransitionView() {
                 <div className="flex-shrink-0 text-center">
                   <div
                     className={cn(
-                      "w-20 h-14 rounded-lg border-2 flex items-center justify-center",
+                      "w-24 h-18 rounded-lg border-2 flex items-center justify-center",
                       productVideoGenerated
                         ? "border-success bg-success/10"
                         : "border-dashed border-warning/50 bg-warning/5",
                     )}
                   >
                     {productVideoGenerated ? (
-                      <Film className="w-5 h-5 text-success" />
+                      <Film className="w-6 h-6 text-success" />
                     ) : (
-                      <Package className="w-5 h-5 text-warning/50" />
+                      <Package className="w-6 h-6 text-warning/50" />
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Product Video</p>
-                  <p className="text-[10px] font-medium text-warning">First Frame</p>
+                  <p className="text-[11px] text-muted-foreground">Product Video</p>
+                  <p className="text-[11px] font-medium text-warning">First Frame</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -323,7 +330,7 @@ export function TransitionView() {
                 <div className="flex-shrink-0 text-center">
                   <div
                     className={cn(
-                      "w-24 h-16 rounded-lg border-2 flex items-center justify-center",
+                      "w-28 h-20 rounded-lg border-2 flex items-center justify-center",
                       productVideoGenerated
                         ? "border-success bg-success/10"
                         : "border-dashed border-warning/50 bg-warning/5",
@@ -331,17 +338,17 @@ export function TransitionView() {
                   >
                     {productVideoGenerated ? (
                       <div className="text-center">
-                        <Film className="w-6 h-6 text-success mx-auto" />
-                        <p className="text-[9px] text-success mt-1">Generated</p>
+                        <Film className="w-7 h-7 text-success mx-auto" />
+                        <p className="text-[10px] text-success mt-1">Generated</p>
                       </div>
                     ) : (
                       <div className="text-center">
-                        <Package className="w-6 h-6 text-warning/50 mx-auto" />
-                        <p className="text-[9px] text-warning/50 mt-1">Ingredients</p>
+                        <Package className="w-7 h-7 text-warning/50 mx-auto" />
+                        <p className="text-[10px] text-warning/50 mt-1">Ingredients</p>
                       </div>
                     )}
                   </div>
-                  <p className="text-[10px] font-semibold text-warning mt-1">Product Placement</p>
+                  <p className="text-[11px] font-semibold text-warning mt-1">Product Placement</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -350,46 +357,46 @@ export function TransitionView() {
                 <div className="flex-shrink-0 text-center">
                   <div
                     className={cn(
-                      "w-20 h-14 rounded-lg border-2 flex items-center justify-center",
+                      "w-24 h-18 rounded-lg border-2 flex items-center justify-center",
                       productVideoGenerated
                         ? "border-success bg-success/10"
                         : "border-dashed border-warning/50 bg-warning/5",
                     )}
                   >
                     {productVideoGenerated ? (
-                      <Film className="w-5 h-5 text-success" />
+                      <Film className="w-6 h-6 text-success" />
                     ) : (
-                      <Package className="w-5 h-5 text-warning/50" />
+                      <Package className="w-6 h-6 text-warning/50" />
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Product Video</p>
-                  <p className="text-[10px] font-medium text-warning">Last Frame</p>
+                  <p className="text-[11px] text-muted-foreground">Product Video</p>
+                  <p className="text-[11px] font-medium text-warning">Last Frame</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
                 {/* Transition Product -> B */}
                 <div className="flex-shrink-0 text-center">
-                  <div className="w-20 h-14 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-primary/50" />
+                  <div className="w-24 h-18 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary/50" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Transition</p>
-                  <p className="text-[10px] font-medium text-primary">Interpolation</p>
+                  <p className="text-[11px] text-muted-foreground">Transition</p>
+                  <p className="text-[11px] font-medium text-primary">Interpolation</p>
                 </div>
 
                 <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
                 {/* Clip B First Frame */}
                 <div className="flex-shrink-0 text-center">
-                  <div className="w-20 h-14 rounded-lg overflow-hidden border-2 border-info mb-1">
+                  <div className="w-24 h-18 rounded-lg overflow-hidden border-2 border-info mb-1">
                     <img
                       src={selectedClipB.thumbnail || "/placeholder.svg"}
                       alt="Clip B"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Clip B</p>
-                  <p className="text-[10px] font-medium text-info">First Frame</p>
+                  <p className="text-[11px] text-muted-foreground">Clip B</p>
+                  <p className="text-[11px] font-medium text-info">First Frame</p>
                 </div>
               </div>
             </motion.div>
@@ -484,11 +491,7 @@ export function TransitionView() {
           )}
 
           {/* Clips Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-xl border border-border p-6"
-          >
+          <div className="bg-card rounded-xl border border-border p-4 md:p-6">
             <h3 className="text-lg font-semibold mb-4">{multiPromptMode ? "Source Clips" : "Transition Preview"}</h3>
 
             <div className="flex items-center gap-4">
@@ -501,45 +504,10 @@ export function TransitionView() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="text-sm text-center truncate">{selectedClipA.name}</p>
-                <p className="text-xs text-muted-foreground text-center">Last frame</p>
+                <p className="text-sm text-gray-300 truncate">{selectedClipA.name}</p>
               </div>
 
-              {/* Transition Preview (only for single mode) */}
-              {!multiPromptMode && (
-                <div className="flex-1">
-                  <div className="aspect-video rounded-lg overflow-hidden border-2 border-dashed border-primary/50 bg-primary/5 relative">
-                    {generatedTransition ? (
-                      <>
-                        <img
-                          src={generatedTransition || "/placeholder.svg"}
-                          alt="Generated transition"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <button
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
-                          >
-                            {isPlaying ? (
-                              <Pause className="w-6 h-6 text-white" />
-                            ) : (
-                              <Play className="w-6 h-6 text-white ml-0.5" />
-                            )}
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-primary/50 mb-2" />
-                        <span className="text-sm text-muted-foreground">Transition</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-center mt-2">{transitionDuration}s transition</p>
-                  <p className="text-xs text-muted-foreground text-center">AI Generated</p>
-                </div>
-              )}
+              <ChevronRight className="w-6 h-6 text-muted-foreground flex-shrink-0" />
 
               {/* Clip B */}
               <div className="flex-1">
@@ -550,120 +518,119 @@ export function TransitionView() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="text-sm text-center truncate">{selectedClipB.name}</p>
-                <p className="text-xs text-muted-foreground text-center">First frame</p>
+                <p className="text-sm text-gray-300 truncate">{selectedClipB.name}</p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Generation Progress */}
-          <AnimatePresence>
-            {(isGenerating || generatedTransition) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-card rounded-xl border border-border overflow-hidden"
-              >
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Generation Progress</h4>
-                    <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-1.5 mt-2" />
+          {(isGenerating || generatedTransition) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-card rounded-xl border border-border p-4 md:p-6 space-y-4 md:space-y-6"
+            >
+              <div className="pb-4 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Generation Progress</h4>
+                  <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
                 </div>
+                <Progress value={progress} className="h-1.5 mt-2" />
+              </div>
 
-                <div className="p-4 space-y-2 max-h-64 overflow-auto">
-                  {steps.map((step, index) => (
-                    <motion.div
-                      key={step.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
-                        step.status === "running" && "bg-info/10",
-                        step.status === "complete" && "bg-success/5",
-                      )}
-                    >
-                      {step.status === "pending" && (
-                        <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
-                      )}
-                      {step.status === "running" && (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        >
-                          <Clock className="w-5 h-5 text-info" />
-                        </motion.div>
-                      )}
-                      {step.status === "complete" && <CheckCircle2 className="w-5 h-5 text-success" />}
-
-                      <span
-                        className={cn(
-                          "flex-1 text-sm",
-                          step.status === "pending" && "text-muted-foreground",
-                          step.status === "running" && "text-foreground font-medium",
-                          step.status === "complete" && "text-foreground",
-                        )}
+              <div className="space-y-2 max-h-64 overflow-auto">
+                {steps.map((step, index) => (
+                  <motion.div
+                    key={step.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={cn(
+                      "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                      step.status === "running" && "bg-info/10",
+                      step.status === "complete" && "bg-success/5",
+                    )}
+                  >
+                    {step.status === "pending" && (
+                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                    )}
+                    {step.status === "running" && (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                       >
-                        {step.name}
-                      </span>
+                        <Clock className="w-5 h-5 text-info" />
+                      </motion.div>
+                    )}
+                    {step.status === "complete" && <CheckCircle2 className="w-5 h-5 text-success" />}
 
-                      {step.status === "complete" && step.duration && (
-                        <span className="text-xs text-muted-foreground">{(step.duration / 1000).toFixed(1)}s</span>
+                    <span
+                      className={cn(
+                        "flex-1 text-sm",
+                        step.status === "pending" && "text-muted-foreground",
+                        step.status === "running" && "text-foreground font-medium",
+                        step.status === "complete" && "text-foreground",
                       )}
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-4">
-            {!generatedTransition ? (
-              <Button
-                size="lg"
-                onClick={startGeneration}
-                disabled={isGenerating || (multiPromptMode && !ingredientsExtracted)}
-                className="bg-primary text-primary-foreground"
-              >
-                {isGenerating ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                     >
-                      <Clock className="w-5 h-5 mr-2" />
-                    </motion.div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-5 h-5 mr-2" />
-                    {multiPromptMode ? "Generate Multi-Prompt Transition" : "Generate Transition"}
-                  </>
-                )}
+                      {step.name}
+                    </span>
+
+                    {step.status === "complete" && step.duration && (
+                      <span className="text-xs text-muted-foreground">{(step.duration / 1000).toFixed(1)}s</span>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Actions */}
+          {generatedTransition && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col sm:flex-row gap-3"
+            >
+              <Button variant="outline" size="lg" onClick={resetGeneration} className="flex-1 bg-transparent">
+                <RotateCcw className="w-5 h-5 mr-2" />
+                Regenerate
               </Button>
-            ) : (
-              <>
-                <Button variant="outline" size="lg" onClick={resetGeneration}>
-                  <RotateCcw className="w-5 h-5 mr-2" />
-                  Regenerate
-                </Button>
-                <Button size="lg" onClick={handleAddToTimeline}>
-                  Add to Timeline
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Button>
-              </>
-            )}
-          </div>
+              <Button size="lg" onClick={handleAddToTimeline} className="flex-1 bg-primary text-primary-foreground">
+                Add to Timeline
+                <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            </motion.div>
+          )}
+
+          {!isGenerating && !generatedTransition && (
+            <Button
+              size="lg"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+              onClick={startGeneration}
+              disabled={isGenerating || (multiPromptMode && !ingredientsExtracted)}
+            >
+              {isGenerating ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                  >
+                    <Clock className="w-5 h-5" />
+                  </motion.div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  {multiPromptMode ? "Generate Multi-Prompt Transition" : "Generate Transition"}
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Settings Sidebar */}
-      <div className="w-80 border-l border-border bg-card/50 p-4 overflow-auto">
+      <div className="hidden lg:block w-80 border-l border-border bg-card/50 p-4 overflow-auto">
         <h3 className="font-semibold mb-6">Transition Settings</h3>
 
         <div className="space-y-6">
@@ -694,15 +661,6 @@ export function TransitionView() {
               step={1}
             />
             <p className="text-xs text-muted-foreground">Recommended: 5-12 seconds for seamless transitions</p>
-          </div>
-
-          {/* Multi-keyframe */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Multi-keyframe</Label>
-              <p className="text-xs text-muted-foreground mt-1">Add intermediate keyframes</p>
-            </div>
-            <Switch checked={multiKeyframe} onCheckedChange={setMultiKeyframe} />
           </div>
 
           <div className="h-px bg-border" />
@@ -875,24 +833,14 @@ export function TransitionView() {
                 <img
                   src={selectedClipA.thumbnail || "/placeholder.svg"}
                   alt="Start frame"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              {multiKeyframe && (
-                <div className="aspect-video rounded-lg border-2 border-dashed border-border flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">+1</span>
-                </div>
-              )}
-              {multiKeyframe && (
-                <div className="aspect-video rounded-lg border-2 border-dashed border-border flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">+2</span>
-                </div>
-              )}
               <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black">
                 <img
                   src={selectedClipB.thumbnail || "/placeholder.svg"}
                   alt="End frame"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -918,6 +866,282 @@ export function TransitionView() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showSettingsSheet && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/60 z-40"
+              onClick={() => setShowSettingsSheet(false)}
+            />
+
+            {/* Bottom Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="lg:hidden fixed bottom-16 left-0 right-0 bg-card rounded-t-2xl z-[90] max-h-[calc(85vh-4rem)] flex flex-col"
+            >
+              {/* Drag Handle */}
+              <div className="flex items-center justify-center py-3 border-b border-border">
+                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <h3 className="font-semibold text-lg">Transition Settings</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowSettingsSheet(false)} className="h-8 w-8 p-0">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Content - Scrollable */}
+              <div className="flex-1 overflow-auto p-4">
+                <div className="space-y-6">
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="flex items-center gap-2 font-medium">
+                          <Layers className="w-4 h-4 text-primary" />
+                          Multi-Prompt Mode
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">Generate product placement video</p>
+                      </div>
+                      <Switch checked={multiPromptMode} onCheckedChange={handleMultiPromptToggle} />
+                    </div>
+                  </div>
+
+                  {/* Duration */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <Label>Duration</Label>
+                      <span className="text-sm text-muted-foreground">{transitionDuration}s</span>
+                    </div>
+                    <Slider
+                      value={[transitionDuration]}
+                      onValueChange={([v]) => setTransitionDuration(v)}
+                      min={5}
+                      max={12}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">Recommended: 5-12 seconds for seamless transitions</p>
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  {/* Product Placement (Single Prompt) */}
+                  {!multiPromptMode && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            Product Placement
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">Integrate products naturally</p>
+                        </div>
+                        <Switch checked={productPlacement} onCheckedChange={setProductPlacement} />
+                      </div>
+
+                      <AnimatePresence>
+                        {productPlacement && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-3"
+                          >
+                            <Label>Product Prompt</Label>
+                            <Textarea
+                              placeholder="e.g., 'Have them drink the energy drink' or 'Show the shoes during the jump'"
+                              value={productPrompt}
+                              onChange={(e) => setProductPrompt(e.target.value)}
+                              rows={3}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  <div className="h-px bg-border" />
+
+                  {/* Product Media Upload Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Product Media
+                      </Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="gap-2"
+                      >
+                        <Upload className="w-3 h-3" />
+                        Add
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </div>
+
+                    <div className="min-h-[120px] rounded-lg border border-dashed border-border p-2 bg-muted/20">
+                      {productMedia.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full py-6 text-center">
+                          <Package className="w-8 h-8 text-muted-foreground/50 mb-2" />
+                          <p className="text-xs text-muted-foreground">No products uploaded</p>
+                          <p className="text-xs text-muted-foreground/70">Upload images or videos of products</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {productMedia.map((product) => (
+                            <motion.div
+                              key={product.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className={cn(
+                                "group relative rounded-lg border-2 overflow-hidden cursor-pointer transition-all aspect-square",
+                                selectedProduct?.id === product.id
+                                  ? "border-warning bg-warning/10 shadow-sm"
+                                  : "border-border hover:border-warning/50",
+                              )}
+                              onClick={() => setSelectedProduct(product)}
+                            >
+                              <div className="absolute inset-0 bg-black">
+                                <img
+                                  src={product.thumbnail || product.url}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+
+                              {/* Type indicator */}
+                              <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+                                {product.type === "video" ? (
+                                  <Video className="w-3 h-3 text-white" />
+                                ) : (
+                                  <ImageIconLucide className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+
+                              {/* Selected indicator */}
+                              {selectedProduct?.id === product.id && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-warning flex items-center justify-center"
+                                >
+                                  <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
+                                </motion.div>
+                              )}
+
+                              {/* Delete button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeProductMedia(product.id)
+                                }}
+                                className="absolute bottom-1 right-1 p-1 rounded-full bg-destructive/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+
+                              {/* Name overlay */}
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <p className="text-[10px] text-white truncate">{product.name}</p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedProduct && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-2 rounded-lg bg-warning/10 border border-warning/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-warning" />
+                          <p className="text-xs text-foreground flex-1 truncate">
+                            Selected: <span className="font-medium">{selectedProduct.name}</span>
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedProduct(null)}
+                            className="h-5 w-5 p-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  {/* Keyframe Preview */}
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4" />
+                      Keyframe Preview
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black">
+                        <img
+                          src={selectedClipA.thumbnail || "/placeholder.svg"}
+                          alt="Start frame"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black">
+                        <img
+                          src={selectedClipB.thumbnail || "/placeholder.svg"}
+                          alt="End frame"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  {/* Quality Settings */}
+                  <div className="space-y-3">
+                    <Label>Output Quality</Label>
+                    <div className="flex gap-2">
+                      {["720p", "1080p", "4K"].map((quality) => (
+                        <Button
+                          key={quality}
+                          variant={quality === "1080p" ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1"
+                        >
+                          {quality}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

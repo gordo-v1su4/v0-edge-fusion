@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from "react"
 import { useAppStore, type ClipMatch } from "@/lib/store"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sliders, Filter, ThumbsUp, ThumbsDown, Sparkles, ArrowRight, Check, X } from "lucide-react"
+import { Sliders, Filter, Sparkles, ArrowRight, Check, X, ThumbsDown, ThumbsUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
@@ -21,13 +21,16 @@ export function MatchingView() {
     selectedClipA,
     selectedClipB,
     setSelectedClips,
-    validateMatch,
     setCurrentView,
+    validationMode,
+    setValidationMode,
+    currentMatchIndex,
+    setCurrentMatchIndex,
+    validateMatch,
   } = useAppStore()
 
   const [showFilters, setShowFilters] = useState(false)
-  const [validationMode, setValidationMode] = useState(false)
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [showSidebar, setShowSidebar] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const matchesInitializedRef = useRef(false)
 
@@ -80,23 +83,18 @@ export function MatchingView() {
   const getQualityColor = (quality: ClipMatch["quality"]) => {
     switch (quality) {
       case "excellent":
-        return "bg-success/20 text-success border-success/30"
+        return "bg-green-500/30 text-green-400 border-green-500/50"
       case "good":
-        return "bg-warning/20 text-warning border-warning/30"
+        return "bg-yellow-500/30 text-yellow-400 border-yellow-500/50"
       case "fair":
-        return "bg-destructive/20 text-destructive border-destructive/30"
+        return "bg-red-500/40 text-red-400 border-red-500/60"
     }
   }
 
-  const getQualityLineColor = (quality: ClipMatch["quality"]) => {
-    switch (quality) {
-      case "excellent":
-        return "stroke-success"
-      case "good":
-        return "stroke-warning"
-      case "fair":
-        return "stroke-destructive/50"
-    }
+  const getQualityBorderColor = (score: number) => {
+    if (score > 70) return "border-green-500/60"
+    if (score > 40) return "border-yellow-500/60"
+    return "border-red-500/70"
   }
 
   const filterOptions = {
@@ -134,30 +132,40 @@ export function MatchingView() {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Main Canvas Area */}
-      <div className="flex-1 p-6 overflow-auto" ref={canvasRef}>
-        <div className="space-y-6">
+      <div className="flex-1 p-4 md:p-6 overflow-auto pb-20 lg:pb-6" ref={canvasRef}>
+        <div className="space-y-4 md:space-y-6">
           {/* Controls Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <Button
-                variant={showFilters ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
+                className={
+                  showFilters
+                    ? "bg-primary/20 text-primary border-primary"
+                    : "hover:bg-primary/10 hover:text-primary hover:border-primary bg-transparent"
+                }
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Filters
               </Button>
               <Button
-                variant={validationMode ? "default" : "outline"}
+                variant="outline"
                 size="sm"
-                onClick={() => setValidationMode(!validationMode)}
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="lg:hidden hover:bg-primary/10 hover:text-primary hover:border-primary bg-transparent"
               >
-                <ThumbsUp className="w-4 h-4 mr-2" />
-                Validate Matches
+                <Sliders className="w-4 h-4 mr-2" />
+                Weights
               </Button>
             </div>
 
-            <Button onClick={() => setCurrentView("transition")} disabled={!selectedClipA || !selectedClipB}>
+            <Button
+              className="text-sm md:text-base"
+              onClick={() => setCurrentView("transition")}
+              disabled={!selectedClipA || !selectedClipB}
+            >
               Generate Transition
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -170,17 +178,19 @@ export function MatchingView() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-card rounded-xl border border-border p-4 space-y-4"
+                className="bg-card rounded-xl border border-border p-3 md:p-4 space-y-3 md:space-y-4"
               >
                 {Object.entries(filterOptions).map(([category, options]) => (
                   <div key={category}>
-                    <h4 className="text-sm font-medium mb-2 capitalize">{category.replace(/([A-Z])/g, " $1")}</h4>
-                    <div className="flex flex-wrap gap-2">
+                    <h4 className="text-xs md:text-sm font-medium mb-2 capitalize">
+                      {category.replace(/([A-Z])/g, " $1")}
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2">
                       {options.map((option) => (
                         <Badge
                           key={option}
                           variant={filters[category as keyof typeof filters].includes(option) ? "default" : "outline"}
-                          className="cursor-pointer transition-colors"
+                          className="cursor-pointer transition-colors text-xs"
                           onClick={() => toggleFilter(category as keyof typeof filters, option)}
                         >
                           {option}
@@ -211,62 +221,66 @@ export function MatchingView() {
 
                 <div className="grid grid-cols-2 gap-6 mb-6 max-w-3xl mx-auto">
                   <div className="space-y-3">
-                    <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                    <div className="relative rounded-lg overflow-hidden border border-border">
                       <div className="aspect-video">
                         <img
                           src={matches[currentMatchIndex].clipA.thumbnail || "/placeholder.svg"}
                           alt={matches[currentMatchIndex].clipA.name}
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-cover"
                         />
                       </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium truncate">{matches[currentMatchIndex].clipA.name}</p>
-                      <div className="flex gap-1.5">
-                        {matches[currentMatchIndex].clipA.metadata?.sportType && (
-                          <Badge variant="secondary" className="text-xs">
-                            {matches[currentMatchIndex].clipA.metadata.sportType}
-                          </Badge>
-                        )}
-                        {matches[currentMatchIndex].clipA.metadata?.environment && (
-                          <Badge variant="outline" className="text-xs">
-                            {matches[currentMatchIndex].clipA.metadata.environment}
-                          </Badge>
-                        )}
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/25">
+                        <p className="text-sm font-medium truncate text-gray-300">
+                          {matches[currentMatchIndex].clipA.name}
+                        </p>
                       </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {matches[currentMatchIndex].clipA.metadata?.sportType && (
+                        <Badge variant="secondary" className="text-xs">
+                          {matches[currentMatchIndex].clipA.metadata.sportType}
+                        </Badge>
+                      )}
+                      {matches[currentMatchIndex].clipA.metadata?.environment && (
+                        <Badge variant="outline" className="text-xs">
+                          {matches[currentMatchIndex].clipA.metadata.environment}
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                    <div className="relative rounded-lg overflow-hidden border border-border">
                       <div className="aspect-video">
                         <img
                           src={matches[currentMatchIndex].clipB.thumbnail || "/placeholder.svg"}
                           alt={matches[currentMatchIndex].clipB.name}
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-cover"
                         />
                       </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium truncate">{matches[currentMatchIndex].clipB.name}</p>
-                      <div className="flex gap-1.5">
-                        {matches[currentMatchIndex].clipB.metadata?.sportType && (
-                          <Badge variant="secondary" className="text-xs">
-                            {matches[currentMatchIndex].clipB.metadata.sportType}
-                          </Badge>
-                        )}
-                        {matches[currentMatchIndex].clipB.metadata?.environment && (
-                          <Badge variant="outline" className="text-xs">
-                            {matches[currentMatchIndex].clipB.metadata.environment}
-                          </Badge>
-                        )}
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/25">
+                        <p className="text-sm font-medium truncate text-gray-300">
+                          {matches[currentMatchIndex].clipB.name}
+                        </p>
                       </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {matches[currentMatchIndex].clipB.metadata?.sportType && (
+                        <Badge variant="secondary" className="text-xs">
+                          {matches[currentMatchIndex].clipB.metadata.sportType}
+                        </Badge>
+                      )}
+                      {matches[currentMatchIndex].clipB.metadata?.environment && (
+                        <Badge variant="outline" className="text-xs">
+                          {matches[currentMatchIndex].clipB.metadata.environment}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-center mb-6">
-                  <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2">
+                  <div className="flex items-center gap-2 bg-muted/50 rounded-full px-4 py-2">
                     <Sparkles className="w-5 h-5 text-primary" />
                     <Badge className={getQualityColor(matches[currentMatchIndex].quality)}>
                       {Math.round(matches[currentMatchIndex].score)}% match
@@ -279,15 +293,16 @@ export function MatchingView() {
                     variant="outline"
                     size="lg"
                     onClick={() => handleValidation(false)}
-                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    className="border-muted-foreground text-muted-foreground hover:bg-red-500/20 hover:text-red-500 hover:border-red-500 transition-colors"
                   >
                     <ThumbsDown className="w-5 h-5 mr-2" />
                     No Match
                   </Button>
                   <Button
+                    variant="outline"
                     size="lg"
                     onClick={() => handleValidation(true)}
-                    className="bg-success hover:bg-success/90 text-success-foreground"
+                    className="border-muted-foreground text-muted-foreground hover:bg-emerald-500/20 hover:text-emerald-500 hover:border-emerald-500 transition-colors"
                   >
                     <ThumbsUp className="w-5 h-5 mr-2" />
                     Good Match
@@ -298,11 +313,10 @@ export function MatchingView() {
           </AnimatePresence>
 
           {/* Matching Canvas */}
-          <div className="relative bg-card/50 rounded-xl border border-border p-6 min-h-[400px]">
+          <div className="relative bg-card/50 rounded-xl border border-border p-3 md:p-6 min-h-[300px] md:min-h-[400px]">
             {/* Connection Lines SVG */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+            <svg className="absolute inset-0 w-full h-full pointer-events-none hidden md:block" style={{ zIndex: 0 }}>
               {matches.slice(0, 8).map((match, index) => {
-                if (match.validated === false) return null
                 const startX = 100 + (index % 4) * 180
                 const startY = 120 + Math.floor(index / 4) * 200
                 const endX = startX + 160
@@ -314,7 +328,7 @@ export function MatchingView() {
                     fill="none"
                     strokeWidth="2"
                     strokeDasharray="5,5"
-                    className={cn("opacity-30", getQualityLineColor(match.quality))}
+                    className={cn("opacity-30", getQualityBorderColor(match.score))}
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 1, delay: index * 0.1 }}
@@ -324,12 +338,10 @@ export function MatchingView() {
             </svg>
 
             {/* Clips Grid */}
-            <div className="relative z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="relative z-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {analyzedClips.map((clip, index) => {
                 const isSelected = selectedClipA?.id === clip.id || selectedClipB?.id === clip.id
-                const matchForClip = matches.find(
-                  (m) => (m.clipA.id === clip.id || m.clipB.id === clip.id) && m.validated !== false,
-                )
+                const matchForClip = matches.find((m) => m.clipA.id === clip.id || m.clipB.id === clip.id)
 
                 return (
                   <motion.div
@@ -337,11 +349,9 @@ export function MatchingView() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{
                       opacity: 1,
-                      scale: isSelected ? 1.05 : 1,
-                      y: isSelected ? -5 : 0,
+                      scale: 1,
                     }}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    transition={{ delay: index * 0.05, type: "spring" }}
+                    transition={{ delay: index * 0.05 }}
                     onClick={() => {
                       if (!selectedClipA) {
                         setSelectedClips(clip, null)
@@ -355,15 +365,9 @@ export function MatchingView() {
                       "relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all",
                       isSelected
                         ? "border-primary ring-2 ring-primary/30"
-                        : "border-border hover:border-muted-foreground/50",
-                      matchForClip &&
-                        `ring-2 ${
-                          matchForClip.quality === "excellent"
-                            ? "ring-success/30"
-                            : matchForClip.quality === "good"
-                              ? "ring-warning/30"
-                              : "ring-destructive/30"
-                        }`,
+                        : matchForClip
+                          ? `border-transparent ring-2 ${matchForClip.score > 70 ? "ring-green-500/30" : matchForClip.score > 40 ? "ring-yellow-500/30" : "ring-red-500/40"}`
+                          : "border-border hover:border-muted-foreground/50",
                     )}
                   >
                     <div className="aspect-video relative">
@@ -372,48 +376,51 @@ export function MatchingView() {
                         alt={clip.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-
-                      {/* Selection indicator */}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-4 h-4 text-primary-foreground" />
+                        <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 md:w-4 md:h-4 text-primary-foreground" />
                         </div>
                       )}
-
-                      {/* Match quality indicator */}
                       {matchForClip && (
-                        <div className="absolute top-2 left-2">
-                          <div
+                        <div className="absolute top-1.5 left-1.5 md:top-2 md:left-2">
+                          <Badge
+                            variant="outline"
                             className={cn(
-                              "w-3 h-3 rounded-full",
-                              matchForClip.quality === "excellent"
-                                ? "bg-success"
-                                : matchForClip.quality === "good"
-                                  ? "bg-warning"
-                                  : "bg-destructive/50",
+                              "text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 border",
+                              matchForClip.score > 70
+                                ? "bg-green-500/40 border-green-500/60 text-green-300"
+                                : matchForClip.score > 40
+                                  ? "bg-yellow-500/40 border-yellow-500/60 text-yellow-300"
+                                  : "bg-red-500/50 border-red-500/70 text-red-300",
                             )}
-                          />
+                          >
+                            {matchForClip.quality}
+                          </Badge>
                         </div>
                       )}
-
-                      {/* Metadata tags */}
-                      <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1">
-                        {clip.metadata?.sportType && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {clip.metadata.sportType}
-                          </Badge>
-                        )}
-                        {clip.metadata?.environment && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {clip.metadata.environment}
-                          </Badge>
-                        )}
+                      <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-2.5 bg-black/25">
+                        <p className="text-[10px] md:text-xs font-medium truncate text-gray-300 mb-1 md:mb-1.5">
+                          {clip.name}
+                        </p>
+                        <div className="flex flex-wrap gap-0.5 md:gap-1">
+                          {clip.metadata?.sportType && (
+                            <Badge
+                              variant="secondary"
+                              className="text-[8px] md:text-[10px] px-1 md:px-1.5 py-0 bg-black/30 text-gray-300 border-none"
+                            >
+                              {clip.metadata.sportType}
+                            </Badge>
+                          )}
+                          {clip.metadata?.environment && (
+                            <Badge
+                              variant="secondary"
+                              className="text-[8px] md:text-[10px] px-1 md:px-1.5 py-0 bg-black/30 text-gray-300 border-none"
+                            >
+                              {clip.metadata.environment}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="p-2 bg-card">
-                      <p className="text-xs font-medium truncate">{clip.name}</p>
                     </div>
                   </motion.div>
                 )
@@ -422,10 +429,12 @@ export function MatchingView() {
 
             {/* Empty State */}
             {analyzedClips.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <Sparkles className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Analyzed Clips</h3>
-                <p className="text-muted-foreground">Go back to Analysis to process your clips first.</p>
+              <div className="flex flex-col items-center justify-center h-48 md:h-64 text-center">
+                <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground mb-3 md:mb-4" />
+                <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">No Analyzed Clips</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Go back to Analysis to process your clips first.
+                </p>
               </div>
             )}
           </div>
@@ -437,89 +446,69 @@ export function MatchingView() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="bg-card rounded-xl border border-border p-4"
+                className="bg-card rounded-xl border border-border p-3 md:p-4"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium">Selected for Transition</h4>
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h4 className="text-xs md:text-sm font-medium">Selected for Transition</h4>
                   <Button variant="ghost" size="sm" onClick={() => setSelectedClips(null, null)}>
-                    <X className="w-4 h-4 mr-1" />
+                    <X className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                     Clear
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div
                     className={cn(
-                      "relative rounded-lg border-2 overflow-hidden bg-muted/20",
-                      selectedClipA ? "border-primary" : "border-dashed border-border",
+                      "relative rounded-lg border-2 overflow-hidden",
+                      selectedClipA ? "border-primary" : "border-dashed border-border bg-muted/20",
                     )}
                   >
                     {selectedClipA ? (
-                      <div>
-                        <div className="aspect-video bg-black">
+                      <>
+                        <div className="aspect-video">
                           <img
                             src={selectedClipA.thumbnail || "/placeholder.svg"}
                             alt={selectedClipA.name}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="p-2 bg-card/80 backdrop-blur-sm">
-                          <p className="text-xs font-medium truncate">{selectedClipA.name}</p>
-                          <div className="flex gap-1 mt-1">
-                            {selectedClipA.metadata?.sportType && (
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                {selectedClipA.metadata.sportType}
-                              </Badge>
-                            )}
-                          </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-2 bg-black/25">
+                          <p className="text-[10px] md:text-xs font-medium truncate text-gray-300">
+                            {selectedClipA.name}
+                          </p>
                         </div>
-                      </div>
+                      </>
                     ) : (
                       <div className="aspect-video flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg font-semibold text-muted-foreground">A</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">Select first clip</span>
-                        </div>
+                        <span className="text-xs md:text-sm text-muted-foreground">Select Clip A</span>
                       </div>
                     )}
                   </div>
 
                   <div
                     className={cn(
-                      "relative rounded-lg border-2 overflow-hidden bg-muted/20",
-                      selectedClipB ? "border-primary" : "border-dashed border-border",
+                      "relative rounded-lg border-2 overflow-hidden",
+                      selectedClipB ? "border-primary" : "border-dashed border-border bg-muted/20",
                     )}
                   >
                     {selectedClipB ? (
-                      <div>
-                        <div className="aspect-video bg-black">
+                      <>
+                        <div className="aspect-video">
                           <img
                             src={selectedClipB.thumbnail || "/placeholder.svg"}
                             alt={selectedClipB.name}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="p-2 bg-card/80 backdrop-blur-sm">
-                          <p className="text-xs font-medium truncate">{selectedClipB.name}</p>
-                          <div className="flex gap-1 mt-1">
-                            {selectedClipB.metadata?.sportType && (
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                {selectedClipB.metadata.sportType}
-                              </Badge>
-                            )}
-                          </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-2 bg-black/25">
+                          <p className="text-[10px] md:text-xs font-medium truncate text-gray-300">
+                            {selectedClipB.name}
+                          </p>
                         </div>
-                      </div>
+                      </>
                     ) : (
                       <div className="aspect-video flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
-                            <span className="text-lg font-semibold text-muted-foreground">B</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">Select second clip</span>
-                        </div>
+                        <span className="text-xs md:text-sm text-muted-foreground">Select Clip B</span>
                       </div>
                     )}
                   </div>
@@ -530,8 +519,128 @@ export function MatchingView() {
         </div>
       </div>
 
-      {/* Weights Sidebar */}
-      <div className="w-72 border-l border-border bg-card/50 p-4 overflow-auto">
+      {/* Mobile Bottom Sheet */}
+      <AnimatePresence>
+        {showSidebar && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSidebar(false)}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed bottom-16 left-0 right-0 max-h-[calc(80vh-4rem)] border-t border-border bg-card z-[90] lg:hidden overflow-auto rounded-t-2xl"
+            >
+              <div className="sticky top-0 bg-card pt-2 pb-4 border-b border-border">
+                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
+                <div className="flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">Match Weights</h3>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setShowSidebar(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4 pb-8">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Motion Compatibility</span>
+                      <span className="text-muted-foreground">{weights.motion}%</span>
+                    </div>
+                    <Slider
+                      value={[weights.motion]}
+                      onValueChange={([v]) => setWeights({ motion: v })}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Composition</span>
+                      <span className="text-muted-foreground">{weights.composition}%</span>
+                    </div>
+                    <Slider
+                      value={[weights.composition]}
+                      onValueChange={([v]) => setWeights({ composition: v })}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Color Palette</span>
+                      <span className="text-muted-foreground">{weights.color}%</span>
+                    </div>
+                    <Slider
+                      value={[weights.color]}
+                      onValueChange={([v]) => setWeights({ color: v })}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-transparent"
+                    onClick={() => setWeights({ motion: 50, composition: 50, color: 50 })}
+                  >
+                    Reset to Default
+                  </Button>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-border">
+                  <h4 className="text-sm font-medium mb-4">Top Matches</h4>
+                  <div className="space-y-2">
+                    {matches.slice(0, 5).map((match) => (
+                      <motion.button
+                        key={match.id}
+                        whileHover={{ x: 2 }}
+                        onClick={() => {
+                          handleMatchClick(match)
+                          setShowSidebar(false)
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors text-left"
+                      >
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            match.score > 70 ? "bg-green-500" : match.score > 40 ? "bg-yellow-500" : "bg-red-500",
+                          )}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs truncate">
+                            {match.clipA.name.split(".")[0]} → {match.clipB.name.split(".")[0]}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{Math.round(match.score)}%</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Weights Sidebar */}
+      <div className="hidden lg:block w-72 border-l border-border bg-card/50 p-4 overflow-auto">
         <div className="flex items-center gap-2 mb-6">
           <Sliders className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Match Weights</h3>
@@ -591,54 +700,29 @@ export function MatchingView() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-border">
-          <h4 className="text-sm font-medium mb-4">Match Quality Legend</h4>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-success" />
-              <span className="text-sm text-muted-foreground">Excellent (70%+)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-warning" />
-              <span className="text-sm text-muted-foreground">Good (40-70%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-destructive/50" />
-              <span className="text-sm text-muted-foreground">Fair (Below 40%)</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-border">
           <h4 className="text-sm font-medium mb-4">Top Matches</h4>
           <div className="space-y-2">
-            {matches
-              .filter((m) => m.validated !== false)
-              .slice(0, 5)
-              .map((match) => (
-                <motion.button
-                  key={match.id}
-                  whileHover={{ x: 2 }}
-                  onClick={() => handleMatchClick(match)}
-                  className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors text-left"
-                >
-                  <div
-                    className={cn(
-                      "w-2 h-2 rounded-full shrink-0",
-                      match.quality === "excellent"
-                        ? "bg-success"
-                        : match.quality === "good"
-                          ? "bg-warning"
-                          : "bg-destructive/50",
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs truncate">
-                      {match.clipA.name.split(".")[0]} → {match.clipB.name.split(".")[0]}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{Math.round(match.score)}%</span>
-                </motion.button>
-              ))}
+            {matches.slice(0, 5).map((match) => (
+              <motion.button
+                key={match.id}
+                whileHover={{ x: 2 }}
+                onClick={() => handleMatchClick(match)}
+                className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors text-left"
+              >
+                <div
+                  className={cn(
+                    "w-2 h-2 rounded-full shrink-0",
+                    match.score > 70 ? "bg-green-500" : match.score > 40 ? "bg-yellow-500" : "bg-red-500",
+                  )}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs truncate">
+                    {match.clipA.name.split(".")[0]} → {match.clipB.name.split(".")[0]}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">{Math.round(match.score)}%</span>
+              </motion.button>
+            ))}
           </div>
         </div>
       </div>

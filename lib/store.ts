@@ -23,7 +23,6 @@ export interface ClipMatch {
   clipB: VideoClip
   score: number
   quality: "excellent" | "good" | "fair"
-  validated?: boolean
 }
 
 export interface AnalysisStep {
@@ -53,7 +52,6 @@ interface AppState {
 
   matches: ClipMatch[]
   setMatches: (matches: ClipMatch[]) => void
-  validateMatch: (id: string, validated: boolean) => void
 
   selectedClipA: VideoClip | null
   selectedClipB: VideoClip | null
@@ -112,10 +110,6 @@ export const useAppStore = create<AppState>((set) => ({
 
   matches: [],
   setMatches: (matches) => set({ matches }),
-  validateMatch: (id, validated) =>
-    set((state) => ({
-      matches: state.matches.map((m) => (m.id === id ? { ...m, validated } : m)),
-    })),
 
   selectedClipA: null,
   selectedClipB: null,
