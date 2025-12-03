@@ -423,6 +423,16 @@ function TimelineView() {
 
   const progressPercent = (currentTime / totalDuration) * 100
 
+  useEffect(() => {
+    if (localClips.length > 0 && scrollContainerRef.current) {
+      // Small delay to ensure container is rendered with correct dimensions
+      const timer = setTimeout(() => {
+        fitToTimeline()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [localClips, fitToTimeline])
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
       <div className="flex items-center justify-center p-4 bg-[#0a0a0a]">
