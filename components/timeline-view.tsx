@@ -335,9 +335,9 @@ function TimelineView() {
 
       const deltaX = e.clientX - dragState.startX
       const deltaTime = deltaX / zoom
-      const SNAP_INTERVAL = 0.5
+      const SNAP_THRESHOLD = 1.0 // Increased snap threshold for better detection
 
-      const snapToGrid = (time: number) => Math.round(time / SNAP_INTERVAL) * SNAP_INTERVAL
+      const snapToGrid = (time: number) => Math.round(time / 0.5) * 0.5
 
       setLocalClips((prev) =>
         prev.map((c) => {
@@ -351,20 +351,41 @@ function TimelineView() {
             const newDuration = snapToGrid(Math.max(1, dragState.initialDuration + deltaTime))
             return { ...c, duration: newDuration }
           } else {
-            // Move - snap to grid and prevent overlap
             let newStart = snapToGrid(Math.max(0, dragState.initialStart + deltaTime))
+            const clipEnd = newStart + c.duration
 
-            // Check for collisions with other clips on same track
-            const sameTrackClips = prev.filter((other) => other.track === c.track && other.id !== c.id)
+            // Get all other clips on the same track, sorted by start time
+            const sameTrackClips = prev
+              .filter((other) => other.track === c.track && other.id !== c.id)
+              .sort((a, b) => a.start - b.start)
+
+            // Check for overlaps and snap to edges
             for (const other of sameTrackClips) {
               const otherEnd = other.start + other.duration
-              // Snap to end of previous clip
-              if (Math.abs(newStart - otherEnd) < 0.5) {
-                newStart = otherEnd
-              }
-              // Snap to start of next clip
-              if (Math.abs(newStart + c.duration - other.start) < 0.5) {
-                newStart = other.start - c.duration
+
+              // Check if we're overlapping with this clip
+              const wouldOverlap = newStart < otherEnd && clipEnd > other.start
+
+              if (wouldOverlap) {
+                // Determine which edge to snap to based on drag direction
+                const movingRight = newStart > dragState.initialStart
+
+                if (movingRight) {
+                  // Snap to start of next clip (right edge)
+                  newStart = otherEnd
+                } else {
+                  // Snap to end of previous clip (left edge)
+                  newStart = Math.max(0, other.start - c.duration)
+                }
+              } else {
+                // Snap to nearby edges if within threshold
+                if (Math.abs(newStart - otherEnd) < SNAP_THRESHOLD) {
+                  // Snap to end of previous clip
+                  newStart = otherEnd
+                } else if (Math.abs(clipEnd - other.start) < SNAP_THRESHOLD) {
+                  // Snap to start of next clip
+                  newStart = other.start - c.duration
+                }
               }
             }
 
@@ -548,7 +569,7 @@ function TimelineView() {
           <div className="flex-1 flex items-center justify-center">
             <div className="flex items-center gap-2">
               <button
-                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
+                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/10 transition-colors"
                 onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
               >
                 <SkipBack size={16} />
@@ -560,7 +581,7 @@ function TimelineView() {
                 {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
               <button
-                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
+                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/10 transition-colors"
                 onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 1))}
               >
                 <SkipForward size={16} />
