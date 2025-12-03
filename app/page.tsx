@@ -17,13 +17,13 @@ export default function Home() {
     <>
       <MobileNav />
 
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen overflow-hidden bg-background">
         <div className="hidden lg:block">
           <Sidebar />
         </div>
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col h-screen overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+          <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
             {currentView === "upload" && <UploadView />}
             {currentView === "analysis" && <AnalysisView />}
             {currentView === "matching" && <MatchingView />}

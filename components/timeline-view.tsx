@@ -18,6 +18,7 @@ import {
   Maximize2,
   RotateCcw,
   Film,
+  ChevronsLeftRight,
 } from "lucide-react"
 
 interface Track {
@@ -121,7 +122,7 @@ function TimelineView() {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const [zoom, setZoom] = useState(120)
+  const [zoom, setZoom] = useState(80) // Increased initial zoom to fit clips within timeline
   const [dragState, setDragState] = useState<{
     clipId: string
     type: "move" | "resize-left" | "resize-right"
@@ -132,13 +133,17 @@ function TimelineView() {
   } | null>(null)
   const [localClips, setLocalClips] = useState<TimelineClip[]>([])
   const [isDraggingPlayhead, setIsDraggingPlayhead] = useState(false)
+  const [trackStates, setTrackStates] = useState<Record<string, { muted: boolean; solo: boolean; locked: boolean }>>({
+    video1: { muted: false, solo: false, locked: false },
+    audio1: { muted: false, solo: false, locked: false },
+  })
 
   const totalDuration = Math.max(60, Math.max(...localClips.map((c) => c.start + c.duration)))
 
   const tracks: Track[] = [
     {
       id: "video1",
-      name: "Video Track 2",
+      name: "VIDEO TRACK 2", // Uppercase styling
       type: "video",
       locked: false,
       visible: true,
@@ -147,7 +152,7 @@ function TimelineView() {
     },
     {
       id: "audio1",
-      name: "Audio Track 1",
+      name: "AUDIO TRACK", // Changed from "Audio Track 1" to "AUDIO TRACK"
       type: "audio",
       locked: false,
       visible: true,
@@ -155,6 +160,8 @@ function TimelineView() {
       icon: Volume2,
     },
   ]
+
+  const timelineWidth = totalDuration * zoom // Declare timelineWidth variable
 
   useEffect(() => {
     const TOTAL_DURATION = 60 // 1 minute total
@@ -237,7 +244,7 @@ function TimelineView() {
 
     const audioClip: TimelineClip = {
       id: "audio-main",
-      name: "Audio Track 1",
+      name: "audio_track_01.wav",
       start: 0,
       duration: totalVideoDuration,
       track: "audio1",
@@ -246,8 +253,6 @@ function TimelineView() {
 
     setLocalClips([...videoClips, audioClip])
   }, [timelineClips])
-
-  const timelineWidth = Math.max(totalDuration * zoom + 100, 800)
 
   // Playback loop
   useEffect(() => {
@@ -387,6 +392,35 @@ function TimelineView() {
     }
   }, [dragState, isDraggingPlayhead, handleMouseMove, handleMouseUp])
 
+  const fitToTimeline = useCallback(() => {
+    if (!scrollContainerRef.current) return
+    const containerWidth = scrollContainerRef.current.clientWidth - 50 // Account for padding
+    const contentDuration = Math.max(...localClips.map((c) => c.start + c.duration), 30)
+    const newZoom = Math.max(20, Math.min(200, containerWidth / contentDuration))
+    setZoom(newZoom)
+  }, [localClips])
+
+  const toggleMute = (trackId: string) => {
+    setTrackStates((prev) => ({
+      ...prev,
+      [trackId]: { ...prev[trackId], muted: !prev[trackId].muted },
+    }))
+  }
+
+  const toggleSolo = (trackId: string) => {
+    setTrackStates((prev) => ({
+      ...prev,
+      [trackId]: { ...prev[trackId], solo: !prev[trackId].solo },
+    }))
+  }
+
+  const toggleLock = (trackId: string) => {
+    setTrackStates((prev) => ({
+      ...prev,
+      [trackId]: { ...prev[trackId], locked: !prev[trackId].locked },
+    }))
+  }
+
   const progressPercent = (currentTime / totalDuration) * 100
 
   return (
@@ -466,8 +500,9 @@ function TimelineView() {
 
       <div className="flex-1 border-t border-border/50 flex flex-col min-h-0">
         {/* Timeline Header with controls */}
-        <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-surface">
-          <div className="flex items-center gap-3">
+        <div className="h-12 border-b border-border flex items-center px-4 bg-surface">
+          {/* Left section: Zoom Controls */}
+          <div className="flex items-center gap-1">
             {/* Zoom Controls */}
             <div className="flex bg-surfaceHighlight rounded-lg p-0.5 border border-border">
               <button
@@ -483,24 +518,48 @@ function TimelineView() {
               >
                 <ZoomIn size={14} />
               </button>
+              <div className="w-px bg-border my-1" />
+              <button
+                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
+                onClick={fitToTimeline}
+                title="Fit to Timeline"
+              >
+                <ChevronsLeftRight size={14} />
+              </button>
             </div>
           </div>
 
-          {/* Timecode Display */}
-          <div className="flex flex-col items-center">
-            <span className="text-lg font-mono font-medium text-primary tracking-wider tabular-nums">
+          <div className="ml-16 flex items-center">
+            <span className="text-sm font-mono font-medium text-primary tracking-wider tabular-nums mx-[23px]">
               {formatTimecode(currentTime)}
             </span>
           </div>
 
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <button
+                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
+                onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
+              >
+                <SkipBack size={16} />
+              </button>
+              <button
+                className="p-2 text-white rounded-full bg-primary/20 hover:bg-primary/30 transition-colors"
+                onClick={() => setIsPlaying(!isPlaying)}
+              >
+                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+              </button>
+              <button
+                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
+                onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 1))}
+              >
+                <SkipForward size={16} />
+              </button>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <button
-              className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
-              onClick={() => setIsPlaying(!isPlaying)}
-            >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            </button>
             <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-medium border border-purple-500/30 hover:bg-purple-500/20 transition-all">
               <Sparkles size={14} />
               AI Generate
@@ -519,54 +578,80 @@ function TimelineView() {
         </div>
 
         <div className="flex-1 flex overflow-hidden bg-[#0c0c0c]">
-          {/* Track Headers */}
-          <div className="w-56 bg-surface border-r border-border flex-shrink-0 z-20 shadow-[4px_0_15px_rgba(0,0,0,0.3)]">
-            <div className="h-8 border-b border-border bg-surface" /> {/* Spacer for ruler */}
-            <div className="overflow-hidden">
-              {tracks.map((track) => {
-                const TrackIcon = track.icon
-                const trackHeight = track.type === "video" ? "h-40" : "h-20"
-                return (
-                  <div
-                    key={track.id}
-                    className={`${trackHeight} border-b border-border/50 flex flex-col justify-center px-3 relative group hover:bg-surfaceHighlight/30 transition-colors`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-6 rounded flex items-center justify-center bg-white/5"
-                          style={{ color: track.color }}
-                        >
-                          <TrackIcon size={14} />
-                        </div>
-                        <span
-                          className="text-xs font-bold uppercase tracking-wide truncate"
-                          style={{ color: track.color }}
-                        >
-                          {track.name}
-                        </span>
-                      </div>
-                    </div>
+          {/* Track Names - Sticky Left Column */}
+          <div className="w-12 lg:w-48 shrink-0 border-r border-border bg-surface flex flex-col">
+            {/* Ruler spacer */}
+            <div className="h-8 border-b border-border bg-surface shrink-0" />
 
-                    {/* Track Controls */}
-                    <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity pl-8">
-                      <button className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-gray-300">
-                        M
-                      </button>
-                      <button className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-gray-300">
-                        S
-                      </button>
-                      <button className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-gray-300">
-                        Lock
-                      </button>
+            {/* Track labels */}
+            {tracks.map((track) => {
+              const TrackIcon = track.icon
+              const trackHeight = track.type === "video" ? "h-40" : "h-20"
+              const state = trackStates[track.id]
+
+              return (
+                <div
+                  key={track.id}
+                  className={`${trackHeight} border-b border-border/50 flex flex-col justify-center px-3 relative group hover:bg-surfaceHighlight/30 transition-colors shrink-0`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded flex items-center justify-center bg-white/5"
+                        style={{ color: track.color }}
+                      >
+                        <TrackIcon size={14} />
+                      </div>
+                      <span
+                        className="hidden lg:inline text-xs font-bold uppercase tracking-wide truncate"
+                        style={{ color: track.color }}
+                      >
+                        {track.name}
+                      </span>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+
+                  <div className="hidden lg:flex gap-1.5 pl-8">
+                    <button
+                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+                        state.muted
+                          ? "bg-red-500/30 text-red-400 border border-red-500/50"
+                          : "bg-white/5 hover:bg-white/10 text-gray-300"
+                      }`}
+                      onClick={() => toggleMute(track.id)}
+                      title="Mute"
+                    >
+                      M
+                    </button>
+                    <button
+                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+                        state.solo
+                          ? "bg-yellow-500/30 text-yellow-400 border border-yellow-500/50"
+                          : "bg-white/5 hover:bg-white/10 text-gray-300"
+                      }`}
+                      onClick={() => toggleSolo(track.id)}
+                      title="Solo"
+                    >
+                      S
+                    </button>
+                    <button
+                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+                        state.locked
+                          ? "bg-gray-500/30 text-gray-400 border border-gray-500/50"
+                          : "bg-white/5 hover:bg-white/10 text-gray-300"
+                      }`}
+                      onClick={() => toggleLock(track.id)}
+                      title="Lock"
+                    >
+                      Lock
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
-          {/* Tracks & Ruler Container */}
+          {/* Scrollable Timeline Area */}
           <div className="flex-1 relative overflow-auto" ref={scrollContainerRef}>
             <div style={{ width: timelineWidth, minWidth: "100%" }} className="relative">
               {/* Ruler */}
@@ -595,15 +680,6 @@ function TimelineView() {
                 ))}
               </div>
 
-              <div className="absolute z-40 top-0 pointer-events-none" style={{ left: currentTime * zoom }}>
-                <div className="relative -translate-x-1/2">
-                  <div className="bg-primary text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg font-mono tabular-nums">
-                    {formatTimecode(currentTime)}
-                  </div>
-                  <div className="absolute -top-1 -translate-x-1/2 w-3 h-2.5 bg-primary rounded-b-sm" />
-                </div>
-              </div>
-
               {/* Tracks Area */}
               <div className="relative">
                 <div
@@ -613,7 +689,7 @@ function TimelineView() {
                 >
                   <div
                     className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(253,224,71,0.5)]"
-                    style={{ height: "100vh" }}
+                    style={{ opacity: 0.65 }}
                   />
                   <div className="absolute -top-1 -translate-x-1/2 w-3 h-2.5 bg-primary rounded-b-sm" />
                 </div>
@@ -621,11 +697,14 @@ function TimelineView() {
                 {tracks.map((track) => {
                   const trackClips = localClips.filter((c) => c.track === track.id)
                   const trackHeight = track.type === "video" ? "h-40" : "h-20"
+                  const state = trackStates[track.id]
 
                   return (
                     <div
                       key={track.id}
-                      className={`${trackHeight} border-b border-border/20 relative bg-background overflow-hidden`}
+                      className={`${trackHeight} border-b border-border/20 relative bg-background overflow-hidden shrink-0 ${
+                        state.muted ? "opacity-50" : ""
+                      }`}
                     >
                       {/* Grid lines */}
                       {Array.from({ length: Math.ceil(totalDuration) }).map((_, i) => (
@@ -648,21 +727,23 @@ function TimelineView() {
                         return (
                           <div
                             key={clip.id}
-                            className="absolute top-1.5 bottom-1.5 rounded-xl overflow-hidden cursor-pointer group hover:brightness-110 transition-all shadow-sm"
+                            className={`absolute top-1.5 bottom-1.5 rounded-xl overflow-hidden cursor-pointer group hover:brightness-110 transition-all shadow-sm ${
+                              state.locked ? "pointer-events-none opacity-70" : ""
+                            }`}
                             style={{
                               left: clipLeft,
                               width: clipWidth,
                               backgroundColor: clip.type === "adjustment" ? `${track.color}20` : `${track.color}15`,
                               border: `1px solid ${track.color}50`,
                             }}
-                            onMouseDown={(e) => startDrag(e, track.id, clip, "move")}
+                            onMouseDown={(e) => !state.locked && startDrag(e, track.id, clip, "move")}
                           >
                             {/* Left resize handle */}
                             <div
                               className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-r border-primary/50"
                               onMouseDown={(e) => {
                                 e.stopPropagation()
-                                startDrag(e, track.id, clip, "resize-left")
+                                if (!state.locked) startDrag(e, track.id, clip, "resize-left")
                               }}
                             />
 
@@ -671,7 +752,7 @@ function TimelineView() {
                               className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-l border-primary/50"
                               onMouseDown={(e) => {
                                 e.stopPropagation()
-                                startDrag(e, track.id, clip, "resize-right")
+                                if (!state.locked) startDrag(e, track.id, clip, "resize-right")
                               }}
                             />
 
@@ -687,7 +768,7 @@ function TimelineView() {
                                   />
                                 ))}
                                 <div
-                                  className="absolute top-1.5 left-2 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-medium border border-primary/20 truncate max-w-[90%] pointer-events-none z-10"
+                                  className="absolute top-1.5 left-2 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-medium border border-white/10 truncate max-w-[90%] pointer-events-none z-10"
                                   style={{ color: track.color }}
                                 >
                                   {clip.name}
@@ -701,7 +782,7 @@ function TimelineView() {
                                   <polygon points={waveformPath} fill={track.color} opacity={0.8} />
                                 </svg>
                                 <div
-                                  className="absolute top-1 left-2 text-[9px] font-bold uppercase tracking-wider z-10"
+                                  className="absolute top-1 left-2 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-medium border border-white/10 truncate max-w-[90%] z-10"
                                   style={{ color: track.color }}
                                 >
                                   {clip.name}

@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { useState, useRef } from "react"
 import { useAppStore } from "@/lib/store"
 import type { ProductMedia } from "@/lib/store"
@@ -16,15 +16,15 @@ import {
   CheckCircle2,
   User,
   Bike,
-  Shirt,
-  Camera,
   Layers,
   ArrowRight,
+  ArrowDown,
   Film,
   Upload,
   X,
   ImageIcon as ImageIconLucide,
   Video,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible" // Import Collapsible components
 
 interface GenerationStep {
   id: string
@@ -96,11 +97,15 @@ export function TransitionView() {
 
   const [multiPromptMode, setMultiPromptMode] = useState(false)
   const [ingredientVideoPrompt, setIngredientVideoPrompt] = useState("")
-  const [extractedIngredients, setExtractedIngredients] = useState<ExtractedIngredient[]>([])
+  const [extractedIngredients, setExtractedIngredients] = useState<ExtractedIngredient[]>([]) // Fixed undeclared variable
   const [ingredientsExtracted, setIngredientsExtracted] = useState(false)
   const [productVideoGenerated, setProductVideoGenerated] = useState(false)
 
   const [showSettingsSheet, setShowSettingsSheet] = useState(false)
+
+  const [ingredientsOpen, setIngredientsOpen] = React.useState(true)
+  // New state for the collapsible generation progress section
+  const [progressOpen, setProgressOpen] = React.useState(true)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -132,56 +137,108 @@ export function TransitionView() {
   const handleMultiPromptToggle = (enabled: boolean) => {
     setMultiPromptMode(enabled)
     setSteps(enabled ? multiPromptSteps : singlePromptSteps)
-    setExtractedIngredients([])
+    setExtractedIngredients([]) // Fixed undeclared variable
     setIngredientsExtracted(false)
     setProductVideoGenerated(false)
   }
 
   const extractIngredients = () => {
     // Simulate extracting people, accessories, objects from keyframes
-    const mockIngredients: ExtractedIngredient[] = [
+    // const mockIngredients: ExtractedIngredient[] = [ // Original block
+    //   {
+    //     id: "1",
+    //     type: "person",
+    //     name: "Person 1",
+    //     icon: <User className="w-4 h-4" />,
+    //     thumbnail: "/person-silhouette.png",
+    //     selected: true,
+    //   },
+    //   {
+    //     id: "2",
+    //     type: "person",
+    //     name: "Person 2",
+    //     icon: <User className="w-4 h-4" />,
+    //     thumbnail: "/person-outline.jpg",
+    //     selected: true,
+    //   },
+    //   {
+    //     id: "3",
+    //     type: "vehicle",
+    //     name: "Bicycle",
+    //     icon: <Bike className="w-4 h-4" />,
+    //     thumbnail: "/bicycle-silhouette.jpg",
+    //     selected: true,
+    //   },
+    //   {
+    //     id: "4",
+    //     type: "accessory",
+    //     name: "Backpack",
+    //     icon: <Shirt className="w-4 h-4" />,
+    //     thumbnail: "/backpack-outline.jpg",
+    //     selected: false,
+    //   },
+    //   {
+    //     id: "5",
+    //     type: "object",
+    //     name: "Camera",
+    //     icon: <Camera className="w-4 h-4" />,
+    //     thumbnail: "/camera-silhouette.jpg",
+    //     selected: false,
+    //   },
+    // ]
+    // setExtractedIngredients(mockIngredients)
+    // setIngredientsExtracted(true)
+
+    setExtractedIngredients([
       {
         id: "1",
         type: "person",
         name: "Person 1",
-        icon: <User className="w-4 h-4" />,
-        thumbnail: "/person-silhouette.png",
+        icon: <User className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
         selected: true,
       },
       {
         id: "2",
         type: "person",
         name: "Person 2",
-        icon: <User className="w-4 h-4" />,
-        thumbnail: "/person-outline.jpg",
+        icon: <User className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
         selected: true,
       },
       {
         id: "3",
         type: "vehicle",
         name: "Bicycle",
-        icon: <Bike className="w-4 h-4" />,
-        thumbnail: "/bicycle-silhouette.jpg",
+        icon: <Bike className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
         selected: true,
       },
       {
         id: "4",
         type: "accessory",
-        name: "Backpack",
-        icon: <Shirt className="w-4 h-4" />,
-        thumbnail: "/backpack-outline.jpg",
+        name: "Basketball",
+        icon: <Sparkles className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
         selected: false,
       },
       {
         id: "5",
         type: "object",
         name: "Camera",
-        icon: <Camera className="w-4 h-4" />,
-        thumbnail: "/camera-silhouette.jpg",
+        icon: <Package className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
         selected: false,
       },
-    ]
-    setExtractedIngredients(mockIngredients)
+      {
+        id: "6",
+        type: "object",
+        name: "Sunset",
+        icon: <Package className="w-3 h-3" />,
+        thumbnail: "/placeholder.svg?height=100&width=100",
+        selected: false,
+      },
+    ])
     setIngredientsExtracted(true)
   }
 
@@ -269,15 +326,110 @@ export function TransitionView() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-xl border border-border p-6"
+              className="bg-card rounded-xl border border-border p-4 md:p-6"
             >
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-primary" />
+              <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
+                <Layers className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 Multi-Prompt Transition Flow
               </h3>
 
-              {/* Visual Flow Diagram */}
-              <div className="flex items-center justify-between gap-2 overflow-x-auto pb-4">
+              {/* Mobile: Vertical Stack */}
+              <div className="flex flex-col md:hidden space-y-3">
+                {/* Clip A Last Frame */}
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-14 rounded-lg overflow-hidden border-2 border-info flex-shrink-0">
+                    <img
+                      src={selectedClipA.thumbnail || "/placeholder.svg"}
+                      alt="Clip A"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-info">Clip A - Last Frame</p>
+                    <p className="text-xs text-muted-foreground">Click extract to analyze</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-5 h-5 text-muted-foreground" />
+                </div>
+
+                {/* Transition A -> Product */}
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-14 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-primary/50" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-primary">Transition Interpolation</p>
+                    <p className="text-xs text-muted-foreground">AI-generated smooth blend</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-5 h-5 text-muted-foreground" />
+                </div>
+
+                {/* Product Placement Center */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-20 h-14 rounded-lg border-2 flex items-center justify-center flex-shrink-0",
+                      productVideoGenerated
+                        ? "border-success bg-success/10"
+                        : "border-dashed border-warning/50 bg-warning/5",
+                    )}
+                  >
+                    {productVideoGenerated ? (
+                      <Film className="w-6 h-6 text-success" />
+                    ) : (
+                      <Package className="w-6 h-6 text-warning/50" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-warning">Product Placement</p>
+                    <p className="text-xs text-muted-foreground">
+                      {productVideoGenerated ? "Generated" : "Using ingredients"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-5 h-5 text-muted-foreground" />
+                </div>
+
+                {/* Transition Product -> B */}
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-14 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-primary/50" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-primary">Transition Interpolation</p>
+                    <p className="text-xs text-muted-foreground">AI-generated smooth blend</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <ArrowDown className="w-5 h-5 text-muted-foreground" />
+                </div>
+
+                {/* Clip B First Frame */}
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-14 rounded-lg overflow-hidden border-2 border-info flex-shrink-0">
+                    <img
+                      src={selectedClipB.thumbnail || "/placeholder.svg"}
+                      alt="Clip B"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-info">Clip B - First Frame</p>
+                    <p className="text-xs text-muted-foreground">Final transition target</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop: Horizontal Flow */}
+              <div className="hidden md:flex items-center justify-between gap-2 overflow-x-auto pb-4">
                 {/* Clip A Last Frame */}
                 <div className="flex-shrink-0 text-center">
                   <div className="w-24 h-18 rounded-lg overflow-hidden border-2 border-info mb-1">
@@ -402,93 +554,117 @@ export function TransitionView() {
             </motion.div>
           )}
 
-          {multiPromptMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-card rounded-xl border border-border p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <User className="w-5 h-5 text-warning" />
-                  Ingredient Extraction
-                </h3>
-                {!ingredientsExtracted && (
-                  <Button size="sm" variant="outline" onClick={extractIngredients}>
-                    Extract from Keyframes
-                  </Button>
-                )}
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-4">
-                Extract people, accessories, and objects from the boundary frames to use in the product placement video.
-              </p>
-
-              {!ingredientsExtracted ? (
-                <div className="flex gap-4">
-                  <div className="flex-1 aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20">
-                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Clip A - Last Frame</p>
-                    <p className="text-xs text-muted-foreground">Click extract to analyze</p>
-                  </div>
-                  <div className="flex-1 aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20">
-                    <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Clip B - First Frame</p>
-                    <p className="text-xs text-muted-foreground">Click extract to analyze</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-5 gap-3">
-                    {extractedIngredients.map((ingredient) => (
-                      <motion.button
-                        key={ingredient.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        onClick={() => toggleIngredient(ingredient.id)}
-                        className={cn(
-                          "p-3 rounded-lg border-2 transition-all text-left",
-                          ingredient.selected ? "border-primary bg-primary/10" : "border-border bg-muted/20 opacity-60",
-                        )}
+          <Collapsible
+            open={ingredientsOpen}
+            onOpenChange={setIngredientsOpen}
+            className="bg-card rounded-xl border border-border"
+          >
+            <div className="p-6">
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between mb-4 cursor-pointer">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <User className="w-5 h-5 text-warning" />
+                    Extraction
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {!ingredientsExtracted && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          extractIngredients()
+                        }}
                       >
-                        <div className="w-full aspect-square rounded-md overflow-hidden mb-2 bg-muted">
-                          <img
-                            src={ingredient.thumbnail || "/placeholder.svg"}
-                            alt={ingredient.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {ingredient.icon}
-                          <span className="text-xs truncate">{ingredient.name}</span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground capitalize">{ingredient.type}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-
-                  <div className="bg-muted/30 rounded-lg p-4">
-                    <Label className="text-sm font-medium mb-2 block">Product Placement Video Prompt</Label>
-                    <Textarea
-                      placeholder="Describe how the extracted ingredients should interact with your product... e.g., 'The person rides the bicycle while drinking the energy drink, camera focuses on the product label'"
-                      value={ingredientVideoPrompt}
-                      onChange={(e) => setIngredientVideoPrompt(e.target.value)}
-                      rows={3}
-                      className="bg-background"
+                        Extract from Keyframes
+                      </Button>
+                    )}
+                    <ChevronDown
+                      className={cn(
+                        "w-5 h-5 text-muted-foreground transition-transform",
+                        ingredientsOpen && "rotate-180",
+                      )}
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Selected ingredients:{" "}
-                      {extractedIngredients
-                        .filter((i) => i.selected)
-                        .map((i) => i.name)
-                        .join(", ") || "None"}
-                    </p>
                   </div>
                 </div>
-              )}
-            </motion.div>
-          )}
+              </CollapsibleTrigger>
+
+              <CollapsibleContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Extract people, accessories, and objects from the boundary frames to use in the product placement
+                  video.
+                </p>
+
+                {!ingredientsExtracted ? (
+                  <div className="flex gap-4">
+                    <div className="flex-1 aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Clip A - Last Frame</p>
+                      <p className="text-xs text-muted-foreground">Click extract to analyze</p>
+                    </div>
+                    <div className="flex-1 aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Clip B - First Frame</p>
+                      <p className="text-xs text-muted-foreground">Click extract to analyze</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                      {extractedIngredients.map((ingredient) => (
+                        <motion.button
+                          key={ingredient.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          onClick={() => toggleIngredient(ingredient.id)}
+                          className={cn(
+                            "p-3 rounded-lg border-2 transition-all text-left",
+                            ingredient.selected
+                              ? "border-primary bg-primary/10"
+                              : "border-border bg-muted/20 opacity-60",
+                          )}
+                        >
+                          <div className="w-full aspect-video rounded-md overflow-hidden mb-2 bg-muted">
+                            <img
+                              src={
+                                ingredient.thumbnail ||
+                                `/placeholder.svg?height=180&width=320&query=${encodeURIComponent(ingredient.name + " " + ingredient.type) || "/placeholder.svg"}`
+                              }
+                              alt={ingredient.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {ingredient.icon}
+                            <span className="text-xs truncate">{ingredient.name}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground capitalize">{ingredient.type}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+
+                    <div className="bg-muted/30 rounded-lg p-4">
+                      <Label className="text-sm font-medium mb-2 block">Product Placement Video Prompt</Label>
+                      <Textarea
+                        placeholder="Describe how the extracted ingredients should interact with your product... e.g., 'The person rides the bicycle while drinking the energy drink, camera focuses on the product label'"
+                        value={ingredientVideoPrompt}
+                        onChange={(e) => setIngredientVideoPrompt(e.target.value)}
+                        rows={3}
+                        className="bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Selected ingredients:{" "}
+                        {extractedIngredients
+                          .filter((i) => i.selected)
+                          .map((i) => i.name)
+                          .join(", ") || "None"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </div>
+          </Collapsible>
 
           {/* Clips Preview */}
           <div className="bg-card rounded-xl border border-border p-4 md:p-6">
@@ -528,74 +704,86 @@ export function TransitionView() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-xl border border-border p-4 md:p-6 space-y-4 md:space-y-6"
+              className="bg-card rounded-xl border border-border overflow-hidden"
             >
-              <div className="pb-4 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Generation Progress</h4>
-                  <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
+              <Collapsible open={progressOpen} onOpenChange={setProgressOpen}>
+                <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+                  <CollapsibleTrigger className="w-full">
+                    <div className="pb-4 border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">Generation Progress</h4>
+                          <ChevronDown
+                            className={cn(
+                              "w-4 h-4 text-muted-foreground transition-transform",
+                              progressOpen && "rotate-180",
+                            )}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
+                      </div>
+                      <Progress value={progress} className="h-1.5 mt-2" />
+                    </div>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <div className="space-y-2 max-h-64 overflow-auto">
+                      {steps.map((step, index) => (
+                        <motion.div
+                          key={step.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                            step.status === "running" && "bg-info/10",
+                            step.status === "complete" && "bg-success/5",
+                          )}
+                        >
+                          {step.status === "pending" && (
+                            <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                          )}
+                          {step.status === "running" && (
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                            >
+                              <Clock className="w-5 h-5 text-info" />
+                            </motion.div>
+                          )}
+                          {step.status === "complete" && <CheckCircle2 className="w-5 h-5 text-success" />}
+
+                          <span
+                            className={cn(
+                              "flex-1 text-sm",
+                              step.status === "pending" && "text-muted-foreground",
+                              step.status === "running" && "text-foreground font-medium",
+                              step.status === "complete" && "text-foreground",
+                            )}
+                          >
+                            {step.name}
+                          </span>
+
+                          {step.status === "complete" && step.duration && (
+                            <span className="text-xs text-muted-foreground">{(step.duration / 1000).toFixed(1)}s</span>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
                 </div>
-                <Progress value={progress} className="h-1.5 mt-2" />
-              </div>
-
-              <div className="space-y-2 max-h-64 overflow-auto">
-                {steps.map((step, index) => (
-                  <motion.div
-                    key={step.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      "flex items-center gap-3 p-2 rounded-lg transition-colors",
-                      step.status === "running" && "bg-info/10",
-                      step.status === "complete" && "bg-success/5",
-                    )}
-                  >
-                    {step.status === "pending" && (
-                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
-                    )}
-                    {step.status === "running" && (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                      >
-                        <Clock className="w-5 h-5 text-info" />
-                      </motion.div>
-                    )}
-                    {step.status === "complete" && <CheckCircle2 className="w-5 h-5 text-success" />}
-
-                    <span
-                      className={cn(
-                        "flex-1 text-sm",
-                        step.status === "pending" && "text-muted-foreground",
-                        step.status === "running" && "text-foreground font-medium",
-                        step.status === "complete" && "text-foreground",
-                      )}
-                    >
-                      {step.name}
-                    </span>
-
-                    {step.status === "complete" && step.duration && (
-                      <span className="text-xs text-muted-foreground">{(step.duration / 1000).toFixed(1)}s</span>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
+              </Collapsible>
             </motion.div>
           )}
 
           {/* Actions */}
           {generatedTransition && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col sm:flex-row gap-3"
-            >
-              <Button variant="outline" size="lg" onClick={resetGeneration} className="flex-1 bg-transparent">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
+              <Button variant="outline" size="lg" onClick={resetGeneration} className="w-full h-12 bg-transparent">
                 <RotateCcw className="w-5 h-5 mr-2" />
                 Regenerate
               </Button>
-              <Button size="lg" onClick={handleAddToTimeline} className="flex-1 bg-primary text-primary-foreground">
+              <Button size="lg" onClick={handleAddToTimeline} className="w-full h-12">
                 Add to Timeline
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
