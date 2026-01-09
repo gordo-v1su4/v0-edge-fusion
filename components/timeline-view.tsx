@@ -1,6 +1,7 @@
 "use client"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type React from "react"
+import { VolumeX, Repeat, Maximize } from "lucide-react"
 
 import { useAppStore } from "@/lib/store"
 import {
@@ -13,10 +14,7 @@ import {
   Download,
   Share2,
   Sparkles,
-  Plus,
   Volume2,
-  Maximize2,
-  RotateCcw,
   Film,
   ChevronsLeftRight,
 } from "lucide-react"
@@ -117,8 +115,8 @@ function generateEnhancedWaveform(width: number, height: number, seed: string): 
   return points.join(" ")
 }
 
-function TimelineView() {
-  const { timelineClips, project } = useAppStore()
+export function TimelineView() {
+  const { currentView, setCurrentView, timelineClips } = useAppStore()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -137,8 +135,13 @@ function TimelineView() {
     video1: { muted: false, solo: false, locked: false },
     audio1: { muted: false, solo: false, locked: false },
   })
+  const [isMuted, setIsMuted] = useState(false)
+  const [isLooping, setIsLooping] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showVideoControls, setShowVideoControls] = useState(true)
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const totalDuration = Math.max(60, Math.max(...localClips.map((c) => c.start + c.duration)))
+  const totalDuration = Math.max(20, Math.max(...localClips.map((c) => c.start + c.duration)))
 
   const tracks: Track[] = [
     {
@@ -164,7 +167,7 @@ function TimelineView() {
   const timelineWidth = totalDuration * zoom // Declare timelineWidth variable
 
   useEffect(() => {
-    const TOTAL_DURATION = 60 // 1 minute total
+    const TOTAL_DURATION = 20 // 20 seconds total for demo
     const videoClips: TimelineClip[] = []
     let currentPosition = 0
 
@@ -303,6 +306,23 @@ function TimelineView() {
     setIsPlaying(false)
   }
 
+  const handlePlayheadDrag = (e: MouseEvent) => {
+    if (!isDraggingPlayhead || !scrollContainerRef.current) return
+
+    const rect = scrollContainerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left + scrollContainerRef.current.scrollLeft - 200
+    const newTime = Math.max(0, Math.min(x / zoom, totalDuration))
+
+    // Trigger haptic feedback on tick marks (every 5 seconds)
+    if (Math.abs(newTime % 5) < 0.1 && Math.abs(newTime - currentTime) > 0.05) {
+      if ("vibrate" in navigator) {
+        navigator.vibrate(10)
+      }
+    }
+
+    setCurrentTime(newTime)
+  }
+
   const startDrag = (
     e: React.MouseEvent,
     trackId: string,
@@ -415,10 +435,10 @@ function TimelineView() {
 
   const fitToTimeline = useCallback(() => {
     if (!scrollContainerRef.current) return
-    const containerWidth = scrollContainerRef.current.clientWidth - 50 // Account for padding
-    const contentDuration = Math.max(...localClips.map((c) => c.start + c.duration), 30)
-    const newZoom = Math.max(20, Math.min(200, containerWidth / contentDuration))
-    setZoom(newZoom)
+    const containerWidth = scrollContainerRef.current.clientWidth - 200 // Account for track labels
+    const maxDuration = Math.max(...localClips.map((c) => c.start + c.duration), 30)
+    const newZoom = Math.floor((containerWidth / maxDuration) * 0.95) // 95% to leave some margin
+    setZoom(Math.max(20, Math.min(200, newZoom)))
   }, [localClips])
 
   const toggleMute = (trackId: string) => {
@@ -454,73 +474,152 @@ function TimelineView() {
     }
   }, [localClips, fitToTimeline])
 
+  useEffect(() => {
+    if (isPlaying) {
+      // Hide controls after 2 seconds when playing
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowVideoControls(false)
+      }, 2000)
+    } else {
+      // Show controls when paused
+      setShowVideoControls(true)
+    }
+
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current)
+      }
+    }
+  }, [isPlaying])
+
+  const handleVideoClick = () => {
+    if (!showVideoControls) {
+      setShowVideoControls(true)
+      // Reset the timeout if playing
+      if (isPlaying) {
+        if (controlsTimeoutRef.current) {
+          clearTimeout(controlsTimeoutRef.current)
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+          setShowVideoControls(false)
+        }, 2000)
+      }
+    }
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
       <div className="flex items-center justify-center p-4 bg-[#0a0a0a]">
         <div className="w-full max-w-3xl">
-          <div className="relative bg-black rounded-lg overflow-hidden aspect-video shadow-2xl group">
+          <div
+            className="relative bg-black rounded-lg overflow-hidden aspect-video shadow-2xl"
+            onClick={handleVideoClick}
+          >
             <img src="/kayaking-on-mountain-lake.jpg" alt="Video preview" className="w-full h-full object-cover" />
 
-            {/* Play button overlay */}
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsPlaying(!isPlaying)
+              }}
+              className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+                showVideoControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
             >
-              <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border border-white/20">
-                {isPlaying ? <Pause className="w-8 h-8 text-white" /> : <Play className="w-8 h-8 text-white ml-1" />}
+              <div
+                className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center border-2 border-primary/75"
+                style={{ opacity: 0.75 }}
+              >
+                {isPlaying ? (
+                  <Pause className="w-8 h-8 text-white/75" />
+                ) : (
+                  <Play className="w-8 h-8 text-white/75 ml-1" />
+                )}
               </div>
             </button>
 
-            {/* Bottom controls overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <div
+              className={`absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+                showVideoControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+              style={{ opacity: showVideoControls ? 0.75 : 0 }}
+            >
               {/* Progress bar */}
               <div
-                className="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer"
+                className="w-full h-1 bg-white/20 cursor-pointer"
                 onClick={(e) => {
+                  e.stopPropagation()
                   const rect = e.currentTarget.getBoundingClientRect()
                   const percent = (e.clientX - rect.left) / rect.width
                   setCurrentTime(percent * totalDuration)
                 }}
               >
-                <div className="h-full bg-primary rounded-full relative" style={{ width: `${progressPercent}%` }}>
+                <div className="h-full bg-primary relative" style={{ width: `${progressPercent}%` }}>
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow-lg" />
                 </div>
               </div>
 
               {/* Controls row */}
-              <div className="flex items-center justify-between text-white">
+              <div className="flex items-center justify-between text-white px-4 py-2">
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentTime(Math.max(0, currentTime - 5))
+                    }}
                     className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                    onClick={() => setCurrentTime(0)}
                   >
-                    <SkipBack className="w-4 h-4" />
+                    <SkipBack size={18} />
                   </button>
                   <button
-                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsPlaying(!isPlaying)
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors border border-primary/75"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                    {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
                   </button>
                   <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentTime(Math.min(totalDuration, currentTime + 5))
+                    }}
                     className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                    onClick={() => setCurrentTime(totalDuration)}
                   >
-                    <SkipForward className="w-4 h-4" />
+                    <SkipForward size={18} />
                   </button>
-                  <span className="text-sm font-mono ml-2">
-                    {formatTime(currentTime)} / {formatTime(totalDuration)}
-                  </span>
+                </div>
+                <div className="text-xs font-mono tabular-nums">
+                  {formatTimecode(currentTime)} / {formatTimecode(totalDuration)}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 hover:bg-white/10 rounded transition-colors">
-                    <Volume2 className="w-4 h-4" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsMuted(!isMuted)
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                  >
+                    {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                   </button>
-                  <button className="p-1.5 hover:bg-white/10 rounded transition-colors">
-                    <RotateCcw className="w-4 h-4" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsLooping(!isLooping)
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                  >
+                    <Repeat size={18} className={isLooping ? "text-primary" : ""} />
                   </button>
-                  <button className="p-1.5 hover:bg-white/10 rounded transition-colors">
-                    <Maximize2 className="w-4 h-4" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsFullscreen(!isFullscreen)
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                  >
+                    <Maximize size={18} />
                   </button>
                 </div>
               </div>
@@ -531,25 +630,24 @@ function TimelineView() {
 
       <div className="flex-1 border-t border-border/50 flex flex-col min-h-0">
         {/* Timeline Header with controls */}
-        <div className="h-12 border-b border-border flex items-center px-4 bg-surface">
-          {/* Left section: Zoom Controls */}
-          <div className="flex items-center gap-1">
-            {/* Zoom Controls */}
-            <div className="flex bg-surfaceHighlight rounded-lg p-0.5 border border-border">
+        <div className="border-b border-border bg-surface">
+          <div className="flex items-center justify-between px-4 py-2 gap-2">
+            {/* Left section: Zoom Controls */}
+            <div className="flex items-center gap-1">
               <button
                 className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
                 onClick={() => setZoom(Math.max(20, zoom - 10))}
+                title="Zoom Out"
               >
                 <ZoomOut size={14} />
               </button>
-              <div className="w-px bg-border my-1" />
               <button
                 className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
                 onClick={() => setZoom(Math.min(200, zoom + 10))}
+                title="Zoom In"
               >
                 <ZoomIn size={14} />
               </button>
-              <div className="w-px bg-border my-1" />
               <button
                 className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/5 transition-colors"
                 onClick={fitToTimeline}
@@ -558,275 +656,193 @@ function TimelineView() {
                 <ChevronsLeftRight size={14} />
               </button>
             </div>
-          </div>
 
-          <div className="ml-16 flex items-center">
-            <span className="text-sm font-mono font-medium text-primary tracking-wider tabular-nums mx-[23px]">
-              {formatTimecode(currentTime)}
-            </span>
-          </div>
+            {/* Action Buttons - Rectangle style with proper width */}
+            <div className="flex items-center gap-1.5">
+              <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-medium border border-purple-500/30 hover:bg-purple-500/20 transition-all h-7">
+                <Sparkles size={12} />
+                <span className="hidden sm:inline">AI Generate</span>
+                <span className="sm:hidden">AI</span>
+              </button>
 
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center gap-2">
-              <button
-                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/10 transition-colors"
-                onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
-              >
-                <SkipBack size={16} />
+              <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-surfaceHighlight text-white text-xs font-medium border border-border hover:bg-white/10 transition-colors h-7">
+                <Share2 size={12} />
+                <span className="hidden sm:inline">Share</span>
               </button>
-              <button
-                className="p-2 text-white rounded-full bg-primary/20 hover:bg-primary/30 transition-colors"
-                onClick={() => setIsPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-              </button>
-              <button
-                className="p-1.5 text-textSecondary hover:text-white rounded hover:bg-white/10 transition-colors"
-                onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 1))}
-              >
-                <SkipForward size={16} />
+
+              <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary text-black text-xs font-bold hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(253,224,71,0.2)] h-7">
+                <Download size={12} />
+                <span className="hidden sm:inline">Export</span>
               </button>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-medium border border-purple-500/30 hover:bg-purple-500/20 transition-all">
-              <Sparkles size={14} />
-              AI Generate
-            </button>
-            <div className="h-5 w-px bg-border mx-1" />
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surfaceHighlight text-white text-xs font-medium border border-border hover:bg-white/10 transition-colors">
-              <Plus size={14} /> Add Clips
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surfaceHighlight text-white text-xs font-medium border border-border hover:bg-white/10 transition-colors">
-              <Share2 size={14} /> Share
-            </button>
-            <button className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-black text-xs font-bold hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(253,224,71,0.2)]">
-              <Download size={14} /> Export
-            </button>
-          </div>
         </div>
 
-        <div className="flex-1 flex overflow-hidden bg-[#0c0c0c]">
-          {/* Track Names - Sticky Left Column */}
-          <div className="w-12 lg:w-48 shrink-0 border-r border-border bg-surface flex flex-col">
-            {/* Ruler spacer */}
-            <div className="h-8 border-b border-border bg-surface shrink-0" />
-
-            {/* Track labels */}
-            {tracks.map((track) => {
-              const TrackIcon = track.icon
-              const trackHeight = track.type === "video" ? "h-40" : "h-20"
-              const state = trackStates[track.id]
-
-              return (
-                <div
-                  key={track.id}
-                  className={`${trackHeight} border-b border-border/50 flex flex-col justify-center px-3 relative group hover:bg-surfaceHighlight/30 transition-colors shrink-0`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
+        {/* Scrollable Timeline Area */}
+        <div className="flex-1 relative overflow-auto" ref={scrollContainerRef}>
+          <div style={{ width: timelineWidth, minWidth: "100%" }} className="relative">
+            {/* Ruler */}
+            <div
+              className="h-8 border-b border-border bg-surface sticky top-0 z-10 cursor-pointer relative"
+              onClick={handleRulerClick}
+            >
+              {Array.from({ length: Math.ceil(totalDuration) + 1 }).map((_, i) => (
+                <div key={i} className="absolute top-0 h-full flex flex-col justify-end" style={{ left: i * zoom }}>
+                  <div className="h-3 w-px bg-textSecondary/40" />
+                  {i % 5 === 0 && (
+                    <span className="absolute bottom-3 left-1 text-[9px] text-textSecondary font-mono tabular-nums">
+                      {formatTimecode(i)}
+                    </span>
+                  )}
+                  {/* Minor ticks */}
+                  {i < totalDuration &&
+                    Array.from({ length: 4 }).map((_, j) => (
                       <div
-                        className="w-6 h-6 rounded flex items-center justify-center bg-white/5"
-                        style={{ color: track.color }}
-                      >
-                        <TrackIcon size={14} />
-                      </div>
-                      <span
-                        className="hidden lg:inline text-xs font-bold uppercase tracking-wide truncate"
-                        style={{ color: track.color }}
-                      >
-                        {track.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="hidden lg:flex gap-1.5 pl-8">
-                    <button
-                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
-                        state.muted
-                          ? "bg-red-500/30 text-red-400 border border-red-500/50"
-                          : "bg-white/5 hover:bg-white/10 text-gray-300"
-                      }`}
-                      onClick={() => toggleMute(track.id)}
-                      title="Mute"
-                    >
-                      M
-                    </button>
-                    <button
-                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
-                        state.solo
-                          ? "bg-yellow-500/30 text-yellow-400 border border-yellow-500/50"
-                          : "bg-white/5 hover:bg-white/10 text-gray-300"
-                      }`}
-                      onClick={() => toggleSolo(track.id)}
-                      title="Solo"
-                    >
-                      S
-                    </button>
-                    <button
-                      className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
-                        state.locked
-                          ? "bg-gray-500/30 text-gray-400 border border-gray-500/50"
-                          : "bg-white/5 hover:bg-white/10 text-gray-300"
-                      }`}
-                      onClick={() => toggleLock(track.id)}
-                      title="Lock"
-                    >
-                      Lock
-                    </button>
-                  </div>
+                        key={j}
+                        className="absolute bottom-0 h-1.5 w-px bg-textSecondary/20"
+                        style={{ left: (zoom / 5) * (j + 1) }}
+                      />
+                    ))}
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Scrollable Timeline Area */}
-          <div className="flex-1 relative overflow-auto" ref={scrollContainerRef}>
-            <div style={{ width: timelineWidth, minWidth: "100%" }} className="relative">
-              {/* Ruler */}
+            {/* Tracks Area */}
+            <div className="relative">
               <div
-                className="h-8 border-b border-border bg-surface sticky top-0 z-10 cursor-pointer relative"
-                onClick={handleRulerClick}
+                className="absolute top-0 bottom-0 z-30 cursor-ew-resize pointer-events-auto"
+                style={{ left: currentTime * zoom }}
+                onMouseDown={handlePlayheadMouseDown}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  setIsDraggingPlayhead(true)
+                  setIsPlaying(false)
+                }}
               >
-                {Array.from({ length: Math.ceil(totalDuration) + 1 }).map((_, i) => (
-                  <div key={i} className="absolute top-0 h-full flex flex-col justify-end" style={{ left: i * zoom }}>
-                    <div className="h-3 w-px bg-textSecondary/40" />
-                    {i % 5 === 0 && (
-                      <span className="absolute bottom-3 left-1 text-[9px] text-textSecondary font-mono tabular-nums">
-                        {formatTimecode(i)}
-                      </span>
-                    )}
-                    {/* Minor ticks */}
-                    {i < totalDuration &&
-                      Array.from({ length: 4 }).map((_, j) => (
-                        <div
-                          key={j}
-                          className="absolute bottom-0 h-1.5 w-px bg-textSecondary/20"
-                          style={{ left: (zoom / 5) * (j + 1) }}
-                        />
-                      ))}
-                  </div>
-                ))}
-              </div>
-
-              {/* Tracks Area */}
-              <div className="relative">
                 <div
-                  className="absolute top-0 bottom-0 z-30 cursor-ew-resize pointer-events-auto"
-                  style={{ left: currentTime * zoom }}
-                  onMouseDown={handlePlayheadMouseDown}
-                >
-                  <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(253,224,71,0.5)]"
-                    style={{ opacity: 0.65 }}
-                  />
-                  <div className="absolute -top-1 -translate-x-1/2 w-3 h-2.5 bg-primary rounded-b-sm" />
+                  className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(253,224,71,0.5)]"
+                  style={{ opacity: 0.65 }}
+                />
+                <div className="absolute -top-1 -translate-x-1/2 w-3 h-2.5 bg-primary rounded-b-sm" />
+
+                {/* Timecode tooltip on playhead */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-black px-2 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap shadow-lg">
+                  {formatTimecode(currentTime)}
                 </div>
-
-                {tracks.map((track) => {
-                  const trackClips = localClips.filter((c) => c.track === track.id)
-                  const trackHeight = track.type === "video" ? "h-40" : "h-20"
-                  const state = trackStates[track.id]
-
-                  return (
-                    <div
-                      key={track.id}
-                      className={`${trackHeight} border-b border-border/20 relative bg-background overflow-hidden shrink-0 ${
-                        state.muted ? "opacity-50" : ""
-                      }`}
-                    >
-                      {/* Grid lines */}
-                      {Array.from({ length: Math.ceil(totalDuration) }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 bottom-0 w-px bg-white/[0.03] pointer-events-none"
-                          style={{ left: i * zoom }}
-                        />
-                      ))}
-
-                      {trackClips.map((clip) => {
-                        const clipWidth = clip.duration * zoom
-                        const clipLeft = clip.start * zoom
-
-                        const waveformPath =
-                          clip.type === "audio" || clip.type === "soundfx"
-                            ? generateEnhancedWaveform(clipWidth, track.type === "video" ? 140 : 60, clip.id)
-                            : ""
-
-                        return (
-                          <div
-                            key={clip.id}
-                            className={`absolute top-1.5 bottom-1.5 rounded-xl overflow-hidden cursor-pointer group hover:brightness-110 transition-all shadow-sm ${
-                              state.locked ? "pointer-events-none opacity-70" : ""
-                            }`}
-                            style={{
-                              left: clipLeft,
-                              width: clipWidth,
-                              backgroundColor: clip.type === "adjustment" ? `${track.color}20` : `${track.color}15`,
-                              border: `1px solid ${track.color}50`,
-                            }}
-                            onMouseDown={(e) => !state.locked && startDrag(e, track.id, clip, "move")}
-                          >
-                            {/* Left resize handle */}
-                            <div
-                              className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-r border-primary/50"
-                              onMouseDown={(e) => {
-                                e.stopPropagation()
-                                if (!state.locked) startDrag(e, track.id, clip, "resize-left")
-                              }}
-                            />
-
-                            {/* Right resize handle */}
-                            <div
-                              className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-l border-primary/50"
-                              onMouseDown={(e) => {
-                                e.stopPropagation()
-                                if (!state.locked) startDrag(e, track.id, clip, "resize-right")
-                              }}
-                            />
-
-                            {clip.type === "video" && clip.thumbnail && (
-                              <div className="flex w-full h-full bg-black/20 overflow-hidden">
-                                {Array.from({ length: Math.ceil(clipWidth / 80) + 1 }).map((_, i) => (
-                                  <img
-                                    key={i}
-                                    src={clip.thumbnail || "/placeholder.svg"}
-                                    alt=""
-                                    className="h-full object-cover opacity-70 pointer-events-none"
-                                    style={{ width: 80, maxWidth: "none", flexShrink: 0 }}
-                                  />
-                                ))}
-                                <div
-                                  className="absolute top-1.5 left-2 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-medium border border-white/10 truncate max-w-[90%] pointer-events-none z-10"
-                                  style={{ color: track.color }}
-                                >
-                                  {clip.name}
-                                </div>
-                              </div>
-                            )}
-
-                            {(clip.type === "audio" || clip.type === "soundfx") && (
-                              <div className="w-full h-full relative flex items-center justify-center pointer-events-none overflow-hidden bg-black/30">
-                                <svg width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
-                                  <polygon points={waveformPath} fill={track.color} opacity={0.8} />
-                                </svg>
-                                <div
-                                  className="absolute top-1 left-2 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-medium border border-white/10 truncate max-w-[90%] z-10"
-                                  style={{ color: track.color }}
-                                >
-                                  {clip.name}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
               </div>
+
+              {tracks.map((track) => {
+                const trackClips = localClips.filter((c) => c.track === track.id)
+                const trackHeight = track.type === "video" ? "h-40" : "h-20"
+                const state = trackStates[track.id]
+
+                return (
+                  <div
+                    key={track.id}
+                    className={`${trackHeight} border-b border-border/20 relative bg-background overflow-hidden shrink-0 ${
+                      state.muted ? "opacity-50" : ""
+                    }`}
+                  >
+                    {/* Grid lines */}
+                    {Array.from({ length: Math.ceil(totalDuration) }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0 w-px bg-white/[0.03] pointer-events-none"
+                        style={{ left: i * zoom }}
+                      />
+                    ))}
+
+                    {trackClips.map((clip) => {
+                      const clipWidth = clip.duration * zoom
+                      const clipLeft = clip.start * zoom
+
+                      const waveformPath =
+                        clip.type === "audio" || clip.type === "soundfx"
+                          ? generateEnhancedWaveform(clipWidth, track.type === "video" ? 140 : 60, clip.id)
+                          : ""
+
+                      return (
+                        <div
+                          key={clip.id}
+                          className={`absolute top-1.5 bottom-1.5 rounded-xl overflow-hidden cursor-pointer group hover:brightness-110 transition-all shadow-sm ${
+                            state.locked ? "pointer-events-none opacity-70" : ""
+                          }`}
+                          style={{
+                            left: clipLeft,
+                            width: clipWidth,
+                            backgroundColor: clip.type === "adjustment" ? `${track.color}20` : `${track.color}15`,
+                            border: `1px solid ${track.color}50`,
+                          }}
+                          onMouseDown={(e) => !state.locked && startDrag(e, track.id, clip, "move")}
+                        >
+                          {/* Left resize handle */}
+                          <div
+                            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-r border-primary/50"
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              if (!state.locked) startDrag(e, track.id, clip, "resize-left")
+                            }}
+                          />
+
+                          {/* Right resize handle */}
+                          <div
+                            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-primary/40 transition-colors border-l border-primary/50"
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              if (!state.locked) startDrag(e, track.id, clip, "resize-right")
+                            }}
+                          />
+
+                          {clip.thumbnail && (
+                            <div className="flex w-full h-full bg-black/20 overflow-hidden relative">
+                              {Array.from({ length: Math.ceil(clipWidth / 80) + 1 }).map((_, i) => (
+                                <img
+                                  key={i}
+                                  src={clip.thumbnail || "/placeholder.svg"}
+                                  alt=""
+                                  className="h-full object-cover opacity-70 pointer-events-none"
+                                  style={{ width: 80, maxWidth: "none", flexShrink: 0 }}
+                                />
+                              ))}
+                              <div
+                                className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-medium border border-white/20 truncate max-w-[calc(100%-16px)] pointer-events-none z-10"
+                                style={{ color: track.color }}
+                              >
+                                {clip.name}
+                              </div>
+                            </div>
+                          )}
+
+                          {(clip.type === "audio" || clip.type === "soundfx") && (
+                            <div className="w-full h-full relative flex items-center justify-center pointer-events-none overflow-hidden bg-black/30">
+                              <svg width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
+                                <polygon points={waveformPath} fill={track.color} opacity={0.8} />
+                              </svg>
+                              <div
+                                className="absolute top-1.5 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-medium border border-white/20 truncate max-w-[calc(100%-16px)] z-10"
+                                style={{ color: track.color }}
+                              >
+                                {clip.name}
+                              </div>
+                            </div>
+                          )}
+
+                          {(clip.type === "ai" || clip.type === "adjustment") && (
+                            <div className="w-full h-full relative flex items-center justify-center bg-black/30">
+                              <div
+                                className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-medium border border-white/20 truncate max-w-[calc(100%-16px)] pointer-events-none z-10"
+                                style={{ color: track.color }}
+                              >
+                                {clip.name}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -834,6 +850,3 @@ function TimelineView() {
     </div>
   )
 }
-
-export default TimelineView
-export { TimelineView }
